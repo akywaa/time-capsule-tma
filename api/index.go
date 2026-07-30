@@ -34,28 +34,41 @@ type Capsule struct {
 	IsHacked  bool      `json:"is_hacked" bson:"is_hacked"`
 }
 
-// init() вызывается Vercel один раз при поднятии инстанса (Cold Start)
-func init() {
-	// 1. Инициализация MongoDB
-	mongoURI := os.Getenv("MONGO_URI")
-	if mongoURI != "" {
+// Ленивая инициализация: проверяем и подключаем сервисы только если они еще не созданы
+func initServices() error {
+	// 1. Подключение к MongoDB
+	if capsulesDB == nil {
+		mongoURI := os.Getenv("MONGO_URI")
+		if mongoURI == "" {
+			return fmt.Errorf("переменная MONGO_URI пустая")
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		clientOptions := options.Client().ApplyURI(mongoURI)
 		client, err := mongo.Connect(ctx, clientOptions)
 		if err != nil {
-			log.Println("Ошибка подключения к MongoDB:", err)
-		} else {
-			// Выбираем базу и коллекцию
-			capsulesDB = client.Database("capsule_app").Collection("capsules")
+			return fmt.Errorf("ошибка подключения к Mongo: %v", err)
 		}
+		
+		// Обязательно "пингуем" базу, чтобы убедиться, что логин/пароль верные
+		if err := client.Ping(ctx, nil); err != nil {
+			return fmt.Errorf("ошибка пинга Mongo: %v", err)
+		}
+		capsulesDB = client.Database("capsule_app").Collection("capsules")
 	}
 
 	// 2. Инициализация Telegram Бота
-	botToken := os.Getenv("BOT_TOKEN")
-	if botToken != "" {
-		bot, _ = gotgbot.NewBot(botToken, nil)
+	if bot == nil {
+		botToken := os.Getenv("BOT_TOKEN")
+		if botToken == "" {
+			return fmt.Errorf("переменная BOT_TOKEN пустая")
+		}
+		b, err := gotgbot.NewBot(botToken, nil)
+		if err != nil {
+			return fmt.Errorf("ошибка запуска бота: %v", err)
+		}
+		bot = b
 		dispatcher = ext.NewDispatcher(&ext.DispatcherOpts{})
 		
 		// Обработчики платежей Stars
@@ -65,16 +78,26 @@ func init() {
 			successfulPaymentHandler,
 		))
 	}
+
+	return nil
 }
 
 // Handler — точка входа для всех запросов /api/* в Vercel
 func Handler(w http.ResponseWriter, r *http.Request) {
-	// CORS заголовки (на случай локального тестирования)
+	// CORS заголовки
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// ГАРАНТИРУЕМ, что база и бот подключены перед обработкой запроса
+	if err := initServices(); err != nil {
+		log.Println("Service Init Error:", err)
+		// Возвращаем точную ошибку на фронтенд, чтобы было видно, в чем проблема
+		http.Error(w, fmt.Sprintf(`{"error": "Init failed: %s"}`, err.Error()), 500)
 		return
 	}
 
@@ -116,6 +139,7 @@ func apiCreateCapsule(w http.ResponseWriter, r *http.Request) {
 
 	_, err := capsulesDB.InsertOne(context.TODO(), capsule)
 	if err != nil {
+		log.Println("DB Insert Error:", err)
 		http.Error(w, `{"error": "DB Error"}`, 500)
 		return
 	}
@@ -137,7 +161,7 @@ func apiGetCapsule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Магия капсулы: если время не пришло и сейф не взломан, скрываем контент от фронтенда!
+	// Если время не пришло и сейф не взломан, скрываем контент
 	if time.Now().Before(c.UnlockAt) && !c.IsHacked {
 		c.Content = "Секрет надежно скрыт :)"
 	}
@@ -151,13 +175,14 @@ func apiGenerateInvoice(w http.ResponseWriter, r *http.Request) {
 	// Генерируем ссылку на оплату Stars. Валюта "XTR"
 	link, err := bot.CreateInvoiceLink(
 		"Взлом капсулы",
-		"Получи доступ к секрету моментально!",
+		"Моментальный доступ к секрету!",
 		id,      // Payload (наш id)
 		"XTR",   // Currency (Валюта)
 		[]gotgbot.LabeledPrice{{Label: "Взлом", Amount: 50}},
 		nil,     // Дополнительные опции
 	)
 	if err != nil {
+		log.Println("Ошибка генерации инвойса:", err)
 		http.Error(w, `{"error": "Invoice generation failed"}`, 500)
 		return
 	}
@@ -189,7 +214,6 @@ func preCheckoutHandler(b *gotgbot.Bot, ctx *ext.Context) error {
 }
 
 func successfulPaymentHandler(b *gotgbot.Bot, ctx *ext.Context) error {
-	// Payload, который мы передали при создании инвойса (ID капсулы)
 	capsuleID := ctx.Message.SuccessfulPayment.InvoicePayload
 	
 	hackerUsername := ctx.EffectiveUser.Username
@@ -211,9 +235,11 @@ func successfulPaymentHandler(b *gotgbot.Bot, ctx *ext.Context) error {
 	}
 
 	// 2. ОТПРАВЛЯЕМ ЭМОЦИОНАЛЬНЫЙ ПУШ ОТПРАВИТЕЛЮ
-	// c.SenderID мы достали из БД на предыдущем шаге
 	msg := fmt.Sprintf("Ахах, твой друг @%s не выдержал и взломал твою капсулу за деньги! 🌟", hackerUsername)
-	b.SendMessage(c.SenderID, msg, nil)
+	_, err = b.SendMessage(c.SenderID, msg, nil)
+	if err != nil {
+		log.Println("Ошибка отправки уведомления:", err)
+	}
 
 	return nil
 }
