@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Time Capsule</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { --bg: #0f0f13; --bg-card: #1c1c24; --text: #ffffff; --accent: #007aff; --star: #f5a623; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; text-align: center; margin: 0; }
+        
+        .hidden { display: none !important; }
+        
+        /* Элементы форм */
+        textarea, select { width: 100%; box-sizing: border-box; padding: 16px; margin: 10px 0; border-radius: 16px; border: 1px solid #333; background: var(--bg-card); color: white; font-size: 16px; resize: none; }
+        textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+        
+        button { width: 100%; padding: 16px; border-radius: 16px; background: var(--accent); color: white; border: none; font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; transition: transform 0.1s; }
+        button:active { transform: scale(0.97); }
+        
+        /* Кнопка взлома */
+        .btn-stars { background: linear-gradient(135deg, #f0a010, #d98010); color: #1a0a00; box-shadow: 0 8px 20px rgba(240, 160, 16, 0.3); display: flex; align-items: center; justify-content: center; gap: 8px; }
+        
+        /* 3D Сейф и Анимация */
+        .safe-container { font-size: 100px; margin: 40px 0; display: inline-block; animation: float 3s ease-in-out infinite; filter: drop-shadow(0 10px 30px rgba(0, 122, 255, 0.4)); }
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(-2deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(-2deg); }
+        }
+        
+        .timer { font-size: 38px; font-weight: 800; font-variant-numeric: tabular-nums; margin-bottom: 24px; color: var(--accent); }
+        
+        .content-box { background: var(--bg-card); padding: 24px; border-radius: 20px; margin-top: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: left; }
+        .content-box h3 { margin-top: 0; color: var(--star); }
+    </style>
+</head>
+<body>
+
+    <!-- ЭКРАН СОЗДАНИЯ -->
+    <div id="create-view" class="hidden">
+        <h2 style="margin-bottom: 8px;">Капсула времени ⏳</h2>
+        <p style="color: #888; font-size: 14px; margin-top: 0;">Спрячь секрет от друга на время!</p>
+        
+        <textarea id="text-input" rows="5" placeholder="Напиши свой секрет или послание..."></textarea>
+        
+        <select id="time-input">
+            <option value="1">Закрыть на 1 час</option>
+            <option value="24">Закрыть на 24 часа</option>
+            <option value="168">Закрыть на 1 неделю</option>
+        </select>
+        
+        <button onclick="createCapsule()" id="create-btn">Спрятать в сейф</button>
+    </div>
+
+    <!-- ЭКРАН ПРОСМОТРА / ВЗЛОМА -->
+    <div id="view-view" class="hidden">
+        <div class="safe-container" id="safe-icon">🗄️</div>
+        
+        <div id="status-container">
+            <div style="color: #888; font-weight: 600; margin-bottom: 8px;">До открытия осталось:</div>
+            <div class="timer" id="timer">--:--:--</div>
+            
+            <button id="hack-btn" class="btn-stars hidden" onclick="hackCapsule()">
+                ⭐️ Не терпится? Взломать (50 Stars)
+            </button>
+        </div>
+        
+        <div id="content-box" class="content-box hidden">
+            <h3>Секрет раскрыт 🔓</h3>
+            <p id="secret-content" style="white-space: pre-wrap; line-height: 1.5; margin-bottom: 0;"></p>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        tg.setHeaderColor('#0f0f13');
+
+        // Твой юзернейм бота для формирования ссылки-приглашения
+        const BOT_USERNAME = "KapsulaVremeni_bot"; 
+        
+        const startParam = tg.initDataUnsafe?.start_param;
+        let currentCapsuleId = null;
+
+        if (startParam) {
+            currentCapsuleId = startParam;
+            document.getElementById('view-view').classList.remove('hidden');
+            loadCapsule(currentCapsuleId);
+        } else {
+            document.getElementById('create-view').classList.remove('hidden');
+        }
+
+        // --- ЛОГИКА СОЗДАНИЯ ---
+        async function createCapsule() {
+            const text = document.getElementById('text-input').value.trim();
+            const hours = document.getElementById('time-input').value;
+            const senderId = tg.initDataUnsafe?.user?.id;
+
+            if (!text) return tg.showAlert("Сначала напиши секрет!");
+            if (!senderId) return tg.showAlert("Ошибка авторизации Telegram.");
+
+            const btn = document.getElementById('create-btn');
+            btn.disabled = true;
+            btn.innerText = "Прячем...";
+
+            try {
+                const res = await fetch('/api/create', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ sender_id: senderId, content: text, hours: parseInt(hours) })
+                });
+                const data = await res.json();
+                
+                const shareUrl = `https://t.me/${BOT_USERNAME}/app?startapp=${data.id}`;
+                const shareText = "Я спрятал для тебя капсулу времени! ⏳ Открой, если сможешь дождаться.";
+                
+                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`);
+            } catch(e) {
+                tg.showAlert("Ошибка сервера");
+                btn.disabled = false;
+                btn.innerText = "Спрятать в сейф";
+            }
+        }
+
+        // --- ЛОГИКА ПРОСМОТРА И ТАЙМЕРА ---
+        let timerInterval;
+        async function loadCapsule(id) {
+            try {
+                const res = await fetch(`/api/get?id=${id}`);
+                if (!res.ok) return tg.showAlert("Капсула не найдена или удалена.");
+                const data = await res.json();
+
+                clearInterval(timerInterval);
+                
+                const updateTimer = () => {
+                    const now = new Date();
+                    const unlockAt = new Date(data.unlock_at);
+                    const diff = unlockAt - now;
+
+                    if (diff <= 0 || data.is_hacked) {
+                        // КАПСУЛА ОТКРЫТА
+                        clearInterval(timerInterval);
+                        document.getElementById('status-container').classList.add('hidden');
+                        document.getElementById('safe-icon').innerText = '🔓';
+                        document.getElementById('safe-icon').style.animation = 'none';
+                        document.getElementById('safe-icon').style.filter = 'drop-shadow(0 10px 30px rgba(245, 166, 35, 0.4))';
+                        
+                        document.getElementById('content-box').classList.remove('hidden');
+                        document.getElementById('secret-content').innerText = data.content;
+                        tg.HapticFeedback.notificationOccurred('success');
+                    } else {
+                        // ТАЙМЕР ТИКАЕТ
+                        document.getElementById('hack-btn').classList.remove('hidden');
+                        const h = Math.floor(diff / (1000 * 60 * 60));
+                        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        const s = Math.floor((diff % (1000 * 60)) / 1000);
+                        document.getElementById('timer').innerText = 
+                            `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                    }
+                };
+                
+                updateTimer();
+                timerInterval = setInterval(updateTimer, 1000);
+            } catch(e) {
+                tg.showAlert("Ошибка загрузки капсулы.");
+            }
+        }
+
+        // --- ЛОГИКА ВЗЛОМА (STARS) ---
+        async function hackCapsule() {
+            tg.HapticFeedback.impactOccurred('medium');
+            try {
+                const res = await fetch(`/api/invoice?id=${currentCapsuleId}`);
+                const data = await res.json();
+                
+                if (data.url) {
+                    tg.openInvoice(data.url, (status) => {
+                        if (status === 'paid' || status === 'pending') {
+                            tg.showAlert("Успех! Сейф взломан 💥");
+                            loadCapsule(currentCapsuleId); // Перезагружаем капсулу, она откроется
+                        }
+                    });
+                }
+            } catch(e) {
+                tg.showAlert("Ошибка создания инвойса.");
+            }
+        }
+    </script>
+</body>
+</html>
