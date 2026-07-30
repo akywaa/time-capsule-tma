@@ -152,11 +152,10 @@ func apiGenerateInvoice(w http.ResponseWriter, r *http.Request) {
 	link, err := bot.CreateInvoiceLink(
 		"Взлом капсулы",
 		"Получи доступ к секрету моментально!",
-		id, // Передаем ID капсулы в Payload, чтобы потом узнать, что взломали
-		"", // Токен провайдера для Stars пустой
-		"XTR",
-		[]gotgbot.LabeledPrice{{Label: "Взлом сейфа", Amount: 50}},
-		nil,
+		id,      // Payload (наш id)
+		"XTR",   // Currency (Валюта)
+		[]gotgbot.LabeledPrice{{Label: "Взлом", Amount: 50}},
+		nil,     // Дополнительные опции
 	)
 	if err != nil {
 		http.Error(w, `{"error": "Invoice generation failed"}`, 500)
