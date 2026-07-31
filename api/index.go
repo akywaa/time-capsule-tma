@@ -94,6 +94,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		capsule.RequireTWA(bot.Token, capsule.MakeReactionHandler(store))(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/passcode"):
 		capsule.RequireTWA(bot.Token, capsule.MakePasscodeHandler(store))(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/contribute"):
+		capsule.RequireTWA(bot.Token, capsule.MakeContributeHandler(store))(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/geo-check"):
+		capsule.RequireTWA(bot.Token, capsule.MakeGeoCheckHandler(store))(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/cron/reminders"):
 		capsule.MakeReminderHandler(store, bot)(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/webhook"):

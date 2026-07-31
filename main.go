@@ -102,6 +102,8 @@ func main() {
 	http.HandleFunc("/api/invoice", capsule.RequireTWA(token, capsule.MakeInvoiceHandler(store, bot)))
 	http.HandleFunc("/api/reaction", capsule.RequireTWA(token, capsule.MakeReactionHandler(store)))
 	http.HandleFunc("/api/passcode", capsule.RequireTWA(token, capsule.MakePasscodeHandler(store)))
+	http.HandleFunc("/api/contribute", capsule.RequireTWA(token, capsule.MakeContributeHandler(store)))
+	http.HandleFunc("/api/geo-check", capsule.RequireTWA(token, capsule.MakeGeoCheckHandler(store)))
 	http.HandleFunc("/api/cron/reminders", capsule.MakeReminderHandler(store, bot))
 
 	log.Println("Web-сервер запущен на порту :8080")

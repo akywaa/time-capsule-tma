@@ -3,6 +3,7 @@ package capsule
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -221,3 +222,51 @@ func (s *MongoStore) MarkReminderSent(id string) error {
 
 // Ensure interface satisfaction
 var _ Store = (*MongoStore)(nil)
+
+// Contribute — добавляет вклад пользователя в групповой сбор
+func (s *MongoStore) Contribute(id string, userID int64, amount int) (*Capsule, error) {
+	ctx := context.TODO()
+	// Атомарно добавляем вклад
+	key := fmt.Sprintf("stars_contributions.%d", userID)
+	var c Capsule
+	err := s.col.FindOneAndUpdate(ctx,
+		bson.M{"_id": id, "capsule_type": "group", "is_hacked": false},
+		bson.M{"$inc": bson.M{key: amount}},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&c)
+	if err != nil {
+		return nil, err
+	}
+	// Проверяем, достигнута ли цель
+	total := 0
+	for _, v := range c.StarsContributions {
+		total += v
+	}
+	if total >= c.GoalStars {
+		return s.SetHacked(id)
+	}
+	return &c, nil
+}
+
+// GeoCheck — проверяет расстояние до цели и автоматически разблокирует
+func (s *MongoStore) GeoCheck(id string, lat, lng float64) (bool, float64, error) {
+	c, err := s.GetByID(id)
+	if err != nil {
+		return false, 0, err
+	}
+	// Haversine formula
+	dist := haversine(lat, lng, c.GeoLat, c.GeoLng)
+	if dist <= float64(c.GeoRadius) {
+		_, err := s.SetHacked(id)
+		return true, dist, err
+	}
+	return false, dist, nil
+}
+
+func haversine(lat1, lng1, lat2, lng2 float64) float64 {
+	const R = 6371000.0
+	dLat := (lat2 - lat1) * math.Pi / 180
+	dLng := (lng2 - lng1) * math.Pi / 180
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(lat1*math.Pi/180)*math.Cos(lat2*math.Pi/180)*math.Sin(dLng/2)*math.Sin(dLng/2)
+	return R * 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+}

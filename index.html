@@ -9,19 +9,31 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#03050a;--surface:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.06);--text:#f4f4f5;--text-dim:#71717a;--accent:#06b6d4;--accent-bright:#22d3ee;--accent-glow:rgba(6,182,212,0.25);--star:#f59e0b;--star-glow:rgba(245,158,11,0.3);--danger:#ef4444;--success:#22c55e;--purple:#8b5cf6 }
+        :root{--bg:#03050a;--surface:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.06);--text:#f4f4f5;--text-dim:#71717a;--accent:#06b6d4;--accent-bright:#22d3ee;--accent-glow:rgba(6,182,212,0.25);--star:#f59e0b;--star-glow:rgba(245,158,11,0.3);--danger:#ef4444;--success:#22c55e;--purple:#8b5cf6;--geo:#10b981;--geo-glow:rgba(16,185,129,0.3)}
         *{box-sizing:border-box}
         body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(6,182,212,0.08) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(139,92,246,0.04) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 20% 20%,rgba(6,182,212,0.03) 0%,transparent 50%);color:var(--text);padding:20px 16px 40px;text-align:center;margin:0;min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
         .bg-dots{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.15;background-image:radial-gradient(circle,rgba(255,255,255,0.3) 1px,transparent 1px);background-size:32px 32px;mask-image:radial-gradient(ellipse 60% 60% at 50% 30%,black 30%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse 60% 60% at 50% 30%,black 30%,transparent 70%)}
         .content-wrap{position:relative;z-index:1;max-width:420px;margin:0 auto}
         .hidden{display:none!important}
         .brand{font-weight:900;font-size:32px;letter-spacing:-1px;background:linear-gradient(135deg,#fff 0%,#a1a1aa 60%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
-        .subtitle{color:var(--text-dim);font-size:14px;line-height:1.5;margin:0 0 24px;font-weight:400}
-        .input-group{margin-bottom:12px;position:relative}
-        textarea,select,input[type="text"]{width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.025);color:var(--text);font-size:15px;font-family:inherit;resize:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);outline:none;-webkit-appearance:none}
-        textarea:focus,select:focus,input[type="text"]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow),0 0 20px var(--accent-glow);background:rgba(6,182,212,0.04)}
+        .subtitle{color:var(--text-dim);font-size:14px;line-height:1.5;margin:0 0 20px;font-weight:400}
+        .input-group{margin-bottom:10px;position:relative}
+        textarea,input[type="text"],input[type="number"]{width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.025);color:var(--text);font-size:15px;font-family:inherit;resize:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);outline:none;-webkit-appearance:none}
+        textarea:focus,input[type="text"]:focus,input[type="number"]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow),0 0 20px var(--accent-glow);background:rgba(6,182,212,0.04)}
         textarea::placeholder,input::placeholder{color:#52525b}
-        select{cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px}
+        input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+        input[type="number"]{-moz-appearance:textfield}
+        /* Custom Dropdown */
+        .custom-select{position:relative;user-select:none}
+        .custom-select-trigger{width:100%;padding:14px 40px 14px 16px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.025);color:var(--text);font-size:15px;font-family:inherit;cursor:pointer;transition:all 0.3s;outline:none;text-align:left;display:flex;align-items:center;gap:8px}
+        .custom-select-trigger::after{content:'';position:absolute;right:16px;top:50%;transform:translateY(-50%);width:12px;height:8px;background:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;transition:transform 0.3s}
+        .custom-select.open .custom-select-trigger{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);background:rgba(6,182,212,0.04)}
+        .custom-select.open .custom-select-trigger::after{transform:translateY(-50%) rotate(180deg)}
+        .custom-select-dropdown{position:absolute;top:calc(100% + 6px);left:0;right:0;background:rgba(15,18,25,0.98);border:1px solid var(--border);border-radius:14px;overflow:hidden;z-index:50;animation:dropdownIn 0.2s ease;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 12px 40px rgba(0,0,0,0.5)}
+        @keyframes dropdownIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+        .custom-option{padding:14px 16px;cursor:pointer;transition:all 0.15s;text-align:left;font-size:14px;font-weight:500;color:var(--text-dim);display:flex;align-items:center;gap:8px}
+        .custom-option:hover{background:rgba(255,255,255,0.04);color:var(--text)}
+        .custom-option.selected{color:var(--accent-bright);background:rgba(6,182,212,0.06);font-weight:600}
         .btn{width:100%;padding:15px;border-radius:14px;border:none;font-weight:600;font-size:15px;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;font-family:inherit;letter-spacing:0.01em}
         .btn-primary{background:linear-gradient(135deg,var(--accent),#0891b2);color:#fff;box-shadow:0 4px 24px var(--accent-glow),0 1px 4px rgba(0,0,0,0.3);margin-top:4px}
         .btn-primary:hover{box-shadow:0 6px 32px rgba(6,182,212,0.35),0 1px 4px rgba(0,0,0,0.3);transform:translateY(-1px)}
@@ -29,19 +41,75 @@
         .btn-primary:disabled{opacity:0.5;pointer-events:none;filter:grayscale(30%)}
         .btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.1) 50%,transparent 60%);transform:translateX(-100%);transition:transform 0.6s}
         .btn:hover::after{transform:translateX(100%)}
-        .btn-stars{background:linear-gradient(135deg,#f59e0b,#d97706);color:#1c1000;box-shadow:0 4px 24px var(--star-glow),0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px;font-weight:700}
+        .btn-stars{background:linear-gradient(135deg,#f59e0b,#d97706);color:#1c1000;box-shadow:0 4px 24px var(--star-glow),0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-weight:700;font-size:14px}
         .btn-stars:hover{box-shadow:0 6px 32px rgba(245,158,11,0.4),0 1px 4px rgba(0,0,0,0.3);transform:translateY(-1px)}
         .btn-stars:active{transform:scale(0.97) translateY(0)}
+        .btn-geo{background:linear-gradient(135deg,var(--geo),#059669);color:#fff;box-shadow:0 4px 24px var(--geo-glow);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-weight:700;font-size:14px}
+        .btn-geo:hover{box-shadow:0 6px 32px rgba(16,185,129,0.4);transform:translateY(-1px)}
+        .btn-geo:active{transform:scale(0.97)}
         .star-icon{font-size:18px;filter:drop-shadow(0 0 4px rgba(251,191,36,0.6));animation:starPulse 2s ease-in-out infinite}
         @keyframes starPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
-        .model-container{width:100%;height:280px;margin:16px 0 20px;position:relative;border-radius:20px;overflow:hidden;animation:float 4s ease-in-out infinite}
+        /* Capsule Type Tabs */
+        .capsule-type-tabs{display:flex;gap:6px;margin-bottom:18px}
+        .capsule-type-tab{flex:1;padding:12px 6px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.015);color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px}
+        .capsule-type-tab .tab-icon{font-size:22px;transition:transform 0.3s}
+        .capsule-type-tab:hover .tab-icon{transform:scale(1.15)}
+        .capsule-type-tab:hover{border-color:rgba(255,255,255,0.15);color:var(--text)}
+        .capsule-type-tab.active{border-color:var(--accent);background:rgba(6,182,212,0.06);color:var(--accent-bright);box-shadow:0 0 20px var(--accent-glow)}
+        .capsule-type-tab[data-type="group"].active{border-color:var(--star);background:rgba(245,158,11,0.06);color:var(--star);box-shadow:0 0 20px var(--star-glow)}
+        .capsule-type-tab[data-type="geo"].active{border-color:var(--geo);background:rgba(16,185,129,0.06);color:var(--geo);box-shadow:0 0 20px var(--geo-glow)}
+        /* Settings Card */
+        .settings-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);text-align:left}
+        .settings-card .card-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+        .settings-card .card-row+.card-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+        .settings-card label{font-size:13px;font-weight:500;color:var(--text-dim);white-space:nowrap}
+        .settings-card input[type="number"]{width:90px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:14px;text-align:center;font-family:inherit;outline:none}
+        .settings-card input[type="number"]:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+        /* Group Create */
+        .star-input-wrap{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.025);border:1px solid var(--border);border-radius:14px;padding:6px 6px 6px 16px;transition:all 0.3s}
+        .star-input-wrap:focus-within{border-color:var(--star);box-shadow:0 0 0 3px var(--star-glow)}
+        .star-input-wrap input{border:none!important;background:transparent!important;box-shadow:none!important;padding:8px 0;font-size:28px;font-weight:800;width:100px;text-align:center;color:var(--star);outline:none}
+        .star-input-wrap .star-label{font-size:20px;font-weight:700;color:var(--star);white-space:nowrap}
+        /* Geo Create */
+        .geo-fetch-btn{width:100%;padding:14px;border-radius:14px;border:2px dashed var(--geo);background:rgba(16,185,129,0.04);color:var(--geo);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
+        .geo-fetch-btn:hover{border-color:#34d399;background:rgba(16,185,129,0.08);box-shadow:0 0 20px var(--geo-glow)}
+        .geo-fetch-btn.fetching{opacity:0.6;pointer-events:none;animation:pulse 1.5s ease-in-out infinite}
+        .geo-coords{display:flex;gap:8px;margin-bottom:10px}
+        .geo-coords input{flex:1;text-align:center;font-size:13px!important;padding:10px 8px!important;font-variant-numeric:tabular-nums}
+        /* Group Drop View */
+        .group-drop-card{background:var(--surface);border:1px solid rgba(245,158,11,0.15);border-radius:16px;padding:16px;margin-top:12px;text-align:left;animation:fadeSlideUp 0.5s ease}
+        .group-drop-card .card-title{font-weight:700;font-size:13px;color:var(--star);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+        .progress-bar-wrap{background:rgba(255,255,255,0.04);border-radius:12px;height:14px;overflow:hidden;margin-bottom:8px;position:relative}
+        .progress-bar-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:12px;transition:width 0.5s cubic-bezier(0.4,0,0.2,1);min-width:2%}
+        .progress-bar-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:20px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3));border-radius:0 12px 12px 0}
+        .progress-text{display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);font-weight:500}
+        .progress-text strong{color:var(--star)}
+        .contributor-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+        .contributor-pill{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--star);font-weight:500}
+        /* Geo View */
+        .geo-view-card{background:var(--surface);border:1px solid rgba(16,185,129,0.15);border-radius:16px;padding:16px;margin-top:12px;text-align:center;animation:fadeSlideUp 0.5s ease}
+        .geo-view-card .card-title{font-weight:700;font-size:13px;color:var(--geo);margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px}
+        .compass-ring{width:100px;height:100px;border-radius:50%;border:3px solid rgba(16,185,129,0.15);margin:0 auto 12px;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(16,185,129,0.05) 0%,transparent 70%)}
+        .compass-needle{position:absolute;width:4px;height:40px;background:linear-gradient(to bottom,var(--danger),var(--geo));border-radius:2px;transform-origin:bottom center;transition:transform 1s cubic-bezier(0.4,0,0.2,1)}
+        .compass-dot{width:12px;height:12px;border-radius:50%;background:var(--geo);box-shadow:0 0 12px var(--geo-glow)}
+        .distance-display{font-size:36px;font-weight:900;letter-spacing:-1px;color:var(--geo);margin-bottom:4px;font-variant-numeric:tabular-nums}
+        .distance-label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
+        .distance-sub{font-size:12px;color:var(--text-dim)}
+        .geo-status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:4px;animation:dotPulse 1.5s ease-in-out infinite}
+        .geo-status-dot.near{background:var(--star);animation-duration:0.5s}
+        .geo-status-dot.unlocked{background:var(--success);animation:none}
+        /* Badges */
+        .capsule-type-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-left:8px}
+        .capsule-type-badge.group{background:rgba(245,158,11,0.1);color:var(--star);border:1px solid rgba(245,158,11,0.2)}
+        .capsule-type-badge.geo{background:rgba(16,185,129,0.1);color:var(--geo);border:1px solid rgba(16,185,129,0.2)}
+        .model-container{width:100%;height:280px;margin:12px 0 16px;position:relative;border-radius:20px;overflow:hidden;animation:float 4s ease-in-out infinite}
         .app-glow{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.15;background:conic-gradient(from 0deg,transparent,rgba(6,182,212,0.15),transparent,rgba(139,92,246,0.1),transparent);animation:glowRotate 10s linear infinite;filter:blur(60px)}
         @keyframes glowRotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
         model-viewer{width:100%;height:100%;--poster-color:transparent;outline:none;position:relative;z-index:1;transition:filter 0.8s ease}
         model-viewer.zooming{filter:brightness(0.3) blur(2px)}
         .reveal-section{padding:0;margin-top:-8px;animation:fadeSlideUp 0.5s cubic-bezier(0.4,0,0.2,1)}
-        .reveal-overlay{display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:all}
+        .reveal-overlay{display:flex;flex-direction:column;align-items:center;gap:4px}
         .reveal-title{font-size:22px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#22c55e,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0;animation:titlePop 0.6s cubic-bezier(0.68,-0.55,0.27,1.55)}
         @keyframes titlePop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
         .reveal-sub{color:var(--text-dim);font-size:12px;margin-bottom:10px;font-weight:500}
@@ -50,7 +118,7 @@
         .reveal-btn:hover{transform:scale(1.04)}.reveal-btn:active{transform:scale(0.95)}
         .dots-pulse .dots::after{content:'';animation:dots 1.2s steps(4,end) infinite}
         @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:''}}
-        .secret-popup{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;pointer-events:all;background:rgba(3,5,10,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:20px 16px;animation:popFadeIn 0.4s ease}
+        .secret-popup{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:rgba(3,5,10,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:20px 16px;animation:popFadeIn 0.4s ease}
         @keyframes popFadeIn{from{opacity:0}to{opacity:1}}
         .secret-popup-card{background:rgba(3,5,10,0.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:20px;padding:24px 18px 18px;text-align:left;width:100%;max-width:420px;max-height:62vh;overflow-y:auto;box-shadow:0 0 60px rgba(6,182,212,0.15),0 16px 48px rgba(0,0,0,0.6);animation:popOut 0.6s 0.1s cubic-bezier(0.68,-0.55,0.27,1.55) both}
         @keyframes popOut{0%{transform:scale(0) rotate(-8deg);opacity:0}50%{transform:scale(1.06) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0deg);opacity:1}}
@@ -77,20 +145,13 @@
         .status-dot{width:6px;height:6px;border-radius:50%;background:var(--danger);animation:dotPulse 1.5s ease-in-out infinite;box-shadow:0 0 8px rgba(239,68,68,0.5)}
         @keyframes dotPulse{0%,100%{opacity:1;box-shadow:0 0 8px rgba(239,68,68,0.5)}50%{opacity:0.4;box-shadow:0 0 2px rgba(239,68,68,0.2)}}
         .timer{font-size:44px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-1px;background:linear-gradient(180deg,#fff 0%,#d4d4d8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 12px rgba(255,255,255,0.15));line-height:1}
-        .content-box{background:var(--surface);padding:24px;border-radius:20px;margin-top:16px;border:1px solid var(--border);text-align:left;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);animation:fadeSlideUp 0.5s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden}
-        .content-box::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(34,197,94,0.3),transparent)}
-        .content-box h3{margin:0 0 12px;font-weight:800;font-size:18px;display:flex;align-items:center;gap:8px}
-        .unlock-icon{font-size:22px;animation:unlockBounce 0.6s cubic-bezier(0.68,-0.55,0.27,1.55)}
-        @keyframes unlockBounce{0%{transform:scale(0) rotate(-20deg);opacity:0}60%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
+        
         .secret-content{white-space:pre-wrap;line-height:1.7;margin:0;color:#d4d4d8;font-size:15px}
         .secret-photo{max-width:100%;border-radius:12px;margin-top:8px}
         .secret-photo.blurred{filter:blur(50px);transform:scale(1.08);pointer-events:none;user-select:none}
         .blur-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;z-index:2;white-space:nowrap;pointer-events:none}
         .photo-blur-wrapper{position:relative;display:inline-block;max-width:100%}
-        .price-row{display:flex;gap:8px;align-items:center}
-        .price-row input[type="number"]{flex:1}
-        .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.025);margin-bottom:12px}
-        .toggle-row span{font-size:14px;color:var(--text-dim)}
+        
         .toggle-switch{position:relative;width:44px;height:26px;flex-shrink:0}
         .toggle-switch input{display:none}
         .toggle-slider{position:absolute;inset:0;background:rgba(255,255,255,0.1);border-radius:26px;cursor:pointer;transition:all 0.3s}
@@ -99,10 +160,11 @@
         .toggle-switch input:checked+.toggle-slider::before{transform:translateX(18px)}
         .secret-audio{width:100%;margin-top:8px;border-radius:12px}
         @keyframes fadeSlideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        .type-tabs{display:flex;gap:8px;margin-bottom:12px}
-        .type-tab{flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.02);color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.25s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
-        .type-tab.active{border-color:var(--accent);background:rgba(6,182,212,0.08);color:var(--accent-bright);box-shadow:0 0 12px var(--accent-glow)}
-        .type-tab:hover:not(.active){border-color:rgba(255,255,255,0.12);color:var(--text)}
+        /* Media Type Tabs */
+        .media-type-tabs{display:flex;gap:4px;margin-bottom:14px}
+        .media-type-tab{flex:1;padding:9px 6px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.015);color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.25s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px}
+        .media-type-tab.active{border-color:var(--accent);background:rgba(6,182,212,0.06);color:var(--accent-bright);box-shadow:0 0 10px var(--accent-glow)}
+        .media-type-tab:hover:not(.active){border-color:rgba(255,255,255,0.12);color:var(--text)}
         .passcode-section{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:16px;backdrop-filter:blur(20px)}
         .passcode-title{font-weight:700;font-size:14px;margin-bottom:12px;color:var(--text-dim)}
         .passcode-inputs{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
@@ -158,31 +220,49 @@
     <div class="content-wrap">
         <div id="create-view" class="hidden">
             <div class="brand">Капсула времени</div>
-            <p class="subtitle">Спрячь секрет или признание от друга. Доступ откроется только по таймеру — или за звёзды ⭐️</p>
-            <div class="type-tabs">
-                <button class="type-tab active" onclick="switchMediaType('text')" id="tab-text">📝 Текст</button>
-                <button class="type-tab" onclick="switchMediaType('photo')" id="tab-photo">📸 Фото</button>
-                <button class="type-tab" onclick="switchMediaType('voice')" id="tab-voice">🎤 Голос</button>
+            <p class="subtitle">Спрячь секрет — по таймеру, общими усилиями или в нужном месте</p>
+            <div class="capsule-type-tabs">
+                <button class="capsule-type-tab active" data-type="personal" onclick="switchCapsuleType('personal')"><span class="tab-icon">👤</span> Личная</button>
+                <button class="capsule-type-tab" data-type="group" onclick="switchCapsuleType('group')"><span class="tab-icon">👥</span> Групповая</button>
+                <button class="capsule-type-tab" data-type="geo" onclick="switchCapsuleType('geo')"><span class="tab-icon">📍</span> Гео</button>
+            </div>
+            <div class="media-type-tabs">
+                <button class="media-type-tab active" onclick="switchMediaType('text')" id="tab-text">📝 Текст</button>
+                <button class="media-type-tab" onclick="switchMediaType('photo')" id="tab-photo">📸 Фото</button>
+                <button class="media-type-tab" onclick="switchMediaType('voice')" id="tab-voice">🎤 Голос</button>
             </div>
             <div class="input-group" id="group-text"><textarea id="text-input" rows="4" placeholder="Напиши свой секрет здесь..."></textarea></div>
             <div class="input-group hidden" id="group-photo">
-                <div class="file-upload">
-                    <input type="file" id="photo-input" accept="image/*" onchange="previewPhoto(event)">
-                    <label for="photo-input" class="file-upload-label" id="photo-label">📎 Выбери фото или нажми сюда</label>
-                </div>
+                <div class="file-upload"><input type="file" id="photo-input" accept="image/*" onchange="previewPhoto(event)"><label for="photo-input" class="file-upload-label" id="photo-label">📎 Выбери фото</label></div>
                 <img id="photo-preview-img" class="photo-preview hidden" alt="Preview">
             </div>
             <div class="input-group hidden" id="group-voice">
-                <div class="voice-section">
-                    <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">🎤</button>
-                    <span class="voice-timer" id="voice-timer">00:00</span>
-                    <audio id="voice-preview-audio" class="hidden" controls></audio>
+                <div class="voice-section"><button class="voice-btn" id="voice-btn" onclick="toggleRecording()">🎤</button><span class="voice-timer" id="voice-timer">00:00</span><audio id="voice-preview-audio" class="hidden" controls></audio></div>
+            </div>
+            <div class="input-group" id="group-timer">
+                <div class="custom-select" id="timer-select">
+                    <button class="custom-select-trigger" id="timer-trigger" onclick="toggleTimerDropdown(event)"><span>🔒</span> <span id="timer-label">Запереть на 24 часа</span></button>
+                    <div class="custom-select-dropdown hidden" id="timer-dropdown">
+                        <div class="custom-option" data-value="1" data-label="🔒 Запереть на 1 час" onclick="selectTimerOption(this)">🕐 1 час</div>
+                        <div class="custom-option selected" data-value="24" data-label="🔒 Запереть на 24 часа" onclick="selectTimerOption(this)">🕐 24 часа</div>
+                        <div class="custom-option" data-value="168" data-label="🔒 Запереть на 1 неделю" onclick="selectTimerOption(this)">📅 1 неделя</div>
+                        <div class="custom-option" data-value="720" data-label="🔒 Запереть на 1 месяц" onclick="selectTimerOption(this)">📅 1 месяц</div>
+                    </div>
                 </div>
             </div>
-            <div class="input-group"><select id="time-input"><option value="1">🔒 Запереть на 1 час</option><option value="24">🔒 Запереть на 24 часа</option><option value="168">🔒 Запереть на 1 неделю</option></select></div>
+            <div class="input-group hidden" id="group-stars-section">
+                <div class="star-input-wrap"><span style="font-size:14px;color:var(--text-dim)">Цель сбора:</span><input type="number" id="goal-stars" value="500" min="10" max="99999" step="10"><span class="star-label">⭐</span></div>
+            </div>
+            <div class="input-group hidden" id="geo-section-create">
+                <button class="geo-fetch-btn" id="geo-fetch-btn" onclick="fetchLocation()">📍 Определить местоположение</button>
+                <div class="geo-coords"><input type="text" id="geo-lat" placeholder="Широта" readonly><input type="text" id="geo-lng" placeholder="Долгота" readonly></div>
+                <div class="settings-card" style="margin-bottom:0"><div class="card-row"><label>Радиус (метров)</label><input type="number" id="geo-radius" value="50" min="5" max="5000" step="5"></div></div>
+            </div>
             <div class="input-group"><input type="text" id="passcode-input" maxlength="4" placeholder="🔢 Код-пароль (4 цифры, опционально)" inputmode="numeric" pattern="[0-9]*"></div>
-            <div class="toggle-row"><span>Разрешить взлом за Stars ⭐</span><label class="toggle-switch"><input type="checkbox" id="allow-hack" checked onchange="toggleHackPrice()"><div class="toggle-slider"></div></label></div>
-            <div class="input-group" id="group-price"><div class="price-row"><span style="color:var(--text-dim);font-size:14px;white-space:nowrap">Цена:</span><input type="number" id="hack-price" value="50" min="1" max="999999" placeholder="50"><span style="color:var(--text-dim);font-size:14px;white-space:nowrap">⭐</span></div></div>
+            <div class="settings-card" id="hack-settings">
+                <div class="card-row"><span style="font-size:13px;color:var(--text-dim)">Разрешить взлом за Stars</span><label class="toggle-switch"><input type="checkbox" id="allow-hack" checked onchange="toggleHackPrice()"><div class="toggle-slider"></div></label></div>
+                <div class="card-row" id="row-price"><label>Цена взлома</label><input type="number" id="hack-price" value="50" min="1" max="999999"></div>
+            </div>
             <button class="btn btn-primary" onclick="createCapsule()" id="create-btn">Спрятать в сейф</button>
         </div>
         <div id="view-view" class="hidden">
@@ -198,12 +278,27 @@
                 </div>
             </div>
             <div id="status-container">
-                <div class="timer-wrapper">
-                    <div class="timer-label">Сейф откроется через</div>
-                    <div class="timer-status"><div class="status-dot"></div><span style="color:var(--text-dim);font-size:11px;font-weight:500">ЗАКРЫТ</span></div>
+                <div class="timer-wrapper" id="timer-card">
+                    <div class="timer-label" id="timer-label-text">Сейф откроется через</div>
+                    <div class="timer-status"><div class="status-dot"></div><span style="color:var(--text-dim);font-size:11px;font-weight:500" id="timer-status-text">ЗАКРЫТ</span><span class="capsule-type-badge hidden" id="type-badge"></span></div>
                     <div class="timer" id="timer">--:--:--</div>
                 </div>
                 <button id="hack-btn" class="btn btn-stars hidden" onclick="hackCapsule()"><span class="star-icon">⭐</span> Взломать досрочно (50 Stars)</button>
+            </div>
+            <div class="group-drop-card hidden" id="group-drop-card">
+                <div class="card-title">👥 Групповой сбор <span style="font-weight:400;font-size:11px">— скидываемся на взлом</span></div>
+                <div class="progress-bar-wrap"><div class="progress-bar-fill" id="group-progress-fill" style="width:0%"></div></div>
+                <div class="progress-text"><span id="group-progress-text">0 / 500 ⭐</span><strong id="group-progress-pct">0%</strong></div>
+                <div class="contributor-list" id="contributor-list"></div>
+                <button class="btn btn-stars" onclick="contributeStars()" id="contribute-btn"><span class="star-icon">⭐</span> Внести 50 Stars</button>
+            </div>
+            <div class="geo-view-card hidden" id="geo-view-card">
+                <div class="card-title">📍 Гео-капсула <span style="font-weight:400;font-size:11px">— доберись до места</span></div>
+                <div class="compass-ring"><div class="compass-needle" id="compass-needle"></div><div class="compass-dot"></div></div>
+                <div class="distance-display" id="geo-distance">---</div>
+                <div class="distance-label">метров до цели</div>
+                <div class="distance-sub"><span class="geo-status-dot" id="geo-status-dot"></span><span id="geo-status-text">Ожидание геопозиции...</span></div>
+                <button class="btn btn-geo hidden" onclick="unlockGeo()" id="geo-unlock-btn">🔓 Открыть сейф</button>
             </div>
             <div id="passcode-section" class="passcode-section hidden">
                 <div class="passcode-title">🔢 Введи 4-значный пароль</div>
@@ -233,6 +328,8 @@
         const startParam = tg.initDataUnsafe?.start_param;
         let currentCapsuleId = null;
         let currentMediaType = 'text';
+        let currentCapsuleType = 'personal';
+        let selectedHours = 24;
         let photoBase64 = null;
         let voiceBase64 = null;
         let audioBlob = null;
@@ -240,11 +337,47 @@
         let voiceStartTime = 0;
         let voiceTimerInterval = null;
         let timerInterval;
+        let geoWatchId = null;
+        let lastGeoPos = null;
+        let capsuleData = null;
         if (startParam) {currentCapsuleId = startParam;document.getElementById('view-view').classList.remove('hidden');loadCapsule(currentCapsuleId)}
         else {document.getElementById('create-view').classList.remove('hidden')}
+        function switchCapsuleType(type) {
+            currentCapsuleType = type;
+            document.querySelectorAll('.capsule-type-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.capsule-type-tab[data-type="${type}"]`).classList.add('active');
+            document.getElementById('group-timer').classList.toggle('hidden', type === 'geo');
+            document.getElementById('group-stars-section').classList.toggle('hidden', type !== 'group');
+            document.getElementById('geo-section-create').classList.toggle('hidden', type !== 'geo');
+            document.getElementById('hack-settings').classList.toggle('hidden', type === 'geo');
+            const btn = document.getElementById('create-btn');
+            if (type === 'group') {btn.textContent = 'Создать групповую капсулу';btn.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)'}
+            else if (type === 'geo') {btn.textContent = 'Закопать гео-капсулу';btn.style.background = 'linear-gradient(135deg,#10b981,#059669)'}
+            else {btn.textContent = 'Спрятать в сейф';btn.style.background = ''}
+        }
+        function toggleTimerDropdown(e) {
+            e.stopPropagation();
+            const dd = document.getElementById('timer-dropdown');
+            if (!dd.classList.contains('hidden')) {closeAllDropdowns();return}
+            closeAllDropdowns();
+            document.getElementById('timer-select').classList.add('open');
+            dd.classList.remove('hidden');
+        }
+        function selectTimerOption(el) {
+            selectedHours = parseInt(el.dataset.value);
+            document.getElementById('timer-label').textContent = el.dataset.label;
+            document.querySelectorAll('#timer-dropdown .custom-option').forEach(o => o.classList.remove('selected'));
+            el.classList.add('selected');
+            closeAllDropdowns();
+        }
+        function closeAllDropdowns() {
+            document.getElementById('timer-select').classList.remove('open');
+            document.getElementById('timer-dropdown').classList.add('hidden');
+        }
+        document.addEventListener('click', closeAllDropdowns);
         function switchMediaType(type) {
             currentMediaType = type;
-            document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.media-type-tab').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-' + type).classList.add('active');
             document.getElementById('group-text').classList.toggle('hidden', type !== 'text');
             document.getElementById('group-photo').classList.toggle('hidden', type !== 'photo');
@@ -302,127 +435,116 @@
                 tg.showAlert('Нет доступа к микрофону. Разреши запись в настройках.');
             }
         }
+        function fetchLocation() {
+            const btn = document.getElementById('geo-fetch-btn');
+            btn.classList.add('fetching');btn.textContent='📍 Определяем...';
+            if(!navigator.geolocation){btn.classList.remove('fetching');btn.textContent='📍 Определить местоположение';return tg.showAlert('Геолокация не поддерживается')}
+            navigator.geolocation.getCurrentPosition(pos=>{document.getElementById('geo-lat').value=pos.coords.latitude.toFixed(6);document.getElementById('geo-lng').value=pos.coords.longitude.toFixed(6);btn.classList.remove('fetching');btn.textContent='✅ Готово';tg.HapticFeedback.notificationOccurred('success')},err=>{btn.classList.remove('fetching');btn.textContent='📍 Определить местоположение';tg.showAlert('Не удалось. Разреши доступ в настройках.')},{enableHighAccuracy:true,timeout:10000});
+        }
         function toggleHackPrice() {
             const allow = document.getElementById('allow-hack').checked;
-            document.getElementById('group-price').classList.toggle('hidden', !allow);
+            document.getElementById('row-price').style.opacity = allow?'1':'0.3';
+            document.getElementById('row-price').style.pointerEvents = allow?'all':'none';
         }
         async function createCapsule() {
-            const hours = document.getElementById('time-input').value;
-            const senderId = tg.initDataUnsafe?.user?.id;
-            const passcode = document.getElementById('passcode-input').value.replace(/\D/g, '');
-            const allowHack = document.getElementById('allow-hack').checked;
-            const hackPrice = parseInt(document.getElementById('hack-price').value) || 50;
+            const senderId = tg.initDataUnsafe?.user?.id || 123456789;
+            const passcode = document.getElementById('passcode-input').value.replace(/\D/g,'');
+            const allowHack = currentCapsuleType==='geo'?false:document.getElementById('allow-hack').checked;
+            const hackPrice = parseInt(document.getElementById('hack-price').value)||50;
+            const goalStars = parseInt(document.getElementById('goal-stars').value)||500;
+            const geoLat = parseFloat(document.getElementById('geo-lat').value)||0;
+            const geoLng = parseFloat(document.getElementById('geo-lng').value)||0;
+            const geoRadius = parseInt(document.getElementById('geo-radius').value)||50;
             let content = '';
-            if (currentMediaType === 'text') {
-                content = document.getElementById('text-input').value.trim();
-                if (!content) return tg.showAlert("Напиши секрет!");
-            } else if (currentMediaType === 'photo') {
-                if (!photoBase64) return tg.showAlert("Выбери фото!");
-                content = photoBase64;
-            } else if (currentMediaType === 'voice') {
-                if (!voiceBase64) return tg.showAlert("Запиши голосовое сообщение!");
-                content = voiceBase64;
-            }
+            if(currentMediaType==='text'){content=document.getElementById('text-input').value.trim();if(!content)return tg.showAlert("Напиши секрет!")}
+            else if(currentMediaType==='photo'){if(!photoBase64)return tg.showAlert("Выбери фото!");content=photoBase64}
+            else if(currentMediaType==='voice'){if(!voiceBase64)return tg.showAlert("Запиши голосовое!");content=voiceBase64}
+            if(currentCapsuleType==='geo'&&(geoLat===0||geoLng===0))return tg.showAlert("Сначала определи геопозицию!");
             const btn = document.getElementById('create-btn');
-            btn.disabled = true;btn.innerHTML = '<span style="opacity:0.7">Прячем...</span>';
-            try {
-                const reqSenderId = senderId || 123456789;
-                const body = {sender_id:reqSenderId,content:content,hours:parseInt(hours),passcode:passcode||'',media_type:currentMediaType,allow_hack:allowHack,allow_hack_set:true,hack_price:hackPrice};
-                const headers = {'Content-Type':'application/json'};
-                if (tg.initData) headers['X-Telegram-Init-Data'] = tg.initData;
-                const res = await fetch('/api/create', {method:'POST',headers:headers,body:JSON.stringify(body)});
-                const data = await res.json();
-                const shareUrl = `https://t.me/${BOT_USERNAME}/app?startapp=${data.id}`;
-                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent("Я спрятал для тебя капсулу времени! Открой, если сможешь дождаться.")}`);
-            } catch(e) {tg.showAlert("Ошибка сервера.");btn.disabled = false;btn.innerHTML = 'Спрятать в сейф'}
+            btn.disabled=true;const origText=btn.textContent;btn.innerHTML='<span style="opacity:0.7">Создаём...</span>';
+            try{
+                const body={sender_id:senderId,content,hours:currentCapsuleType==='geo'?876000:selectedHours,passcode:passcode||'',media_type:currentMediaType,allow_hack:allowHack,allow_hack_set:true,hack_price:hackPrice,capsule_type:currentCapsuleType,goal_stars:goalStars,geo_lat:geoLat,geo_lng:geoLng,geo_radius:geoRadius};
+                const hdrs={'Content-Type':'application/json'};if(tg.initData)hdrs['X-Telegram-Init-Data']=tg.initData;
+                const res=await fetch('/api/create',{method:'POST',headers:hdrs,body:JSON.stringify(body)});
+                const data=await res.json();
+                const shareUrl=`https://t.me/${BOT_USERNAME}/app?startapp=${data.id}`;
+                const msg=currentCapsuleType==='group'?'Я создал групповую капсулу! Скидываемся?':currentCapsuleType==='geo'?'Я спрятал гео-капсулу! Найди место.':'Я спрятал капсулу времени! Открой, если дождешься.';
+                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(msg)}`);
+            }catch(e){tg.showAlert("Ошибка сервера.");btn.disabled=false;btn.innerHTML=origText}
         }
-        let capsuleData = null;
-        async function loadCapsule(id) {
-            try {
-                const oldBlur = document.getElementById('blur-preview');
-                if (oldBlur) oldBlur.remove();
-                const viewerId = tg.initDataUnsafe?.user?.id;
-                const res = await fetch(`/api/get?id=${id}${viewerId ? '&viewer_id=' + viewerId : ''}`);
-                if (!res.ok) return tg.showAlert("Капсула не найдена.");
-                const data = await res.json();
-                capsuleData = data;
-                clearInterval(timerInterval);
-                const safeModel = document.getElementById('safe-model');
-                const overlay = document.getElementById('loading-overlay');
+async function loadCapsule(id) {
+            try{
+                const oldBlur=document.getElementById('blur-preview');if(oldBlur)oldBlur.remove();
+                if(geoWatchId){navigator.geolocation.clearWatch(geoWatchId);geoWatchId=null}
+                const viewerId=tg.initDataUnsafe?.user?.id;
+                const res=await fetch(`/api/get?id=${id}${viewerId?'&viewer_id='+viewerId:''}`);
+                if(!res.ok)return tg.showAlert("Капсула не найдена.");
+                const data=await res.json();capsuleData=data;clearInterval(timerInterval);
+                const safeModel=document.getElementById('safe-model');
+                const overlay=document.getElementById('loading-overlay');
                 safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
-                const isOpen = data.is_hacked || new Date() >= new Date(data.unlock_at);
-                overlay.classList.remove('hidden');
-                safeModel.setAttribute('src', isOpen ? '/safe-open.glb' : '/safe.glb');
-                updateReactions(data.reactions || {});
-                const passcodeSection = document.getElementById('passcode-section');
-                if (data.has_passcode && !isOpen) {
-                    passcodeSection.classList.remove('hidden');
-                    document.getElementById('passcode-attempts-text').textContent = `Осталось попыток: ${data.passcode_attempts || 3}`;
-                    if (data.passcode_attempts <= 0) {
-                        document.getElementById('passcode-submit-btn').disabled = true;
-                        document.getElementById('passcode-attempts-text').textContent = 'Попытки закончились. Только платный взлом!';
-                        document.getElementById('passcode-attempts-text').classList.add('warn');
-                    }
-                } else { passcodeSection.classList.add('hidden'); }
-                // Показываем размытое превью если фото залочено
-                if (data.preview && data.media_type === 'photo') {
-                    const container = document.getElementById('model-container');
-                    let blurEl = document.getElementById('blur-preview');
-                    if (!blurEl) {
-                        blurEl = document.createElement('div');
-                        blurEl.id = 'blur-preview';
-                        blurEl.style.cssText = 'position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;pointer-events:none';
-                        container.appendChild(blurEl);
-                    }
-                    blurEl.innerHTML = buildBlurredPhoto(data.content);
-                    blurEl.classList.remove('hidden');
-                }
-                // Обновляем кнопку взлома с динамической ценой
-                const hackBtn = document.getElementById('hack-btn');
-                if (data.allow_hack === false) {
-                    hackBtn.classList.add('hidden');
-                } else {
-                    hackBtn.querySelector('.star-icon').nextSibling.textContent = ` Взломать досрочно (${data.hack_price || 50} Stars)`;
-                }
-                const updateTimer = () => {
-                    const now = new Date();
-                    const unlockAt = new Date(data.unlock_at);
-                    const diff = unlockAt - now;
-                    if (diff <= 0) {
-                        clearInterval(timerInterval);
-                        overlay.classList.remove('hidden');
-                        safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
-                        safeModel.setAttribute('src','/safe-open.glb');
-                        document.getElementById('status-container').classList.add('hidden');
-                        document.getElementById('passcode-section').classList.add('hidden');
-                        document.getElementById('reveal-section').classList.remove('hidden');
-                        tg.HapticFeedback.notificationOccurred('success');
-                    } else if (data.is_hacked) {
-                        clearInterval(timerInterval);
-                        overlay.classList.remove('hidden');
-                        safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
-                        safeModel.setAttribute('src','/safe-open.glb');
-                        document.getElementById('status-container').classList.add('hidden');
-                        document.getElementById('passcode-section').classList.add('hidden');
-                        document.getElementById('reveal-section').classList.remove('hidden');
-                        tg.HapticFeedback.notificationOccurred('success');
-                    } else {
-                        document.getElementById('hack-btn').classList.remove('hidden');
-                        const h = Math.floor(diff/(1000*60*60));
-                        const m = Math.floor((diff%(1000*60*60))/(1000*60));
-                        const s = Math.floor((diff%(1000*60))/1000);
-                        document.getElementById('timer').innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-                    }
-                };
-                updateTimer();
-                if (isOpen) {
-                    document.getElementById('status-container').classList.add('hidden');
-                    document.getElementById('passcode-section').classList.add('hidden');
-                    document.getElementById('reveal-section').classList.remove('hidden');
-                    fireConfetti();
-                }
-                timerInterval = setInterval(updateTimer,1000);
-            } catch(e) {tg.showAlert("Ошибка загрузки.")}
+                const isOpen=data.is_hacked||(data.capsule_type!=='geo'&&new Date()>=new Date(data.unlock_at));
+                overlay.classList.remove('hidden');safeModel.setAttribute('src',isOpen?'/safe-open.glb':'/safe.glb');
+                updateReactions(data.reactions||{});
+                const badge=document.getElementById('type-badge');badge.classList.add('hidden');
+                if(data.capsule_type==='group'){badge.textContent='👥 Группа';badge.className='capsule-type-badge group';badge.classList.remove('hidden')}
+                else if(data.capsule_type==='geo'){badge.textContent='📍 Гео';badge.className='capsule-type-badge geo';badge.classList.remove('hidden')}
+                const ps=document.getElementById('passcode-section');
+                if(data.has_passcode&&!isOpen){ps.classList.remove('hidden');document.getElementById('passcode-attempts-text').textContent=`Осталось попыток: ${data.passcode_attempts||3}`;if(data.passcode_attempts<=0){document.getElementById('passcode-submit-btn').disabled=true;document.getElementById('passcode-attempts-text').textContent='Попытки закончились.';document.getElementById('passcode-attempts-text').classList.add('warn')}}else{ps.classList.add('hidden')}
+                const hackBtn=document.getElementById('hack-btn');
+                const groupCard=document.getElementById('group-drop-card');
+                const geoCard=document.getElementById('geo-view-card');
+                const timerCard=document.getElementById('timer-card');
+                hackBtn.classList.add('hidden');groupCard.classList.add('hidden');geoCard.classList.add('hidden');
+                if(isOpen){timerCard.classList.add('hidden');document.getElementById('reveal-section').classList.remove('hidden');fireConfetti()}
+                else if(data.capsule_type==='group'){timerCard.classList.add('hidden');groupCard.classList.remove('hidden');renderGroupProgress(data)}
+                else if(data.capsule_type==='geo'){timerCard.classList.add('hidden');geoCard.classList.remove('hidden');startGeoWatch(data)}
+                else{timerCard.classList.remove('hidden');document.getElementById('timer-label-text').textContent='Сейф откроется через';document.getElementById('timer-status-text').textContent='ЗАКРЫТ';if(data.allow_hack!==false){hackBtn.classList.remove('hidden');hackBtn.querySelector('.star-icon').nextSibling.textContent=` Взломать досрочно (${data.hack_price||50} Stars)`}}
+                if(data.preview&&data.media_type==='photo'){const c=document.getElementById('model-container');let b=document.getElementById('blur-preview');if(!b){b=document.createElement('div');b.id='blur-preview';b.style.cssText='position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;pointer-events:none';c.appendChild(b)}b.innerHTML=buildBlurredPhoto(data.content);b.classList.remove('hidden')}
+                if(data.capsule_type==='personal'&&!isOpen){const updateTimer=()=>{const n=new Date();const u=new Date(data.unlock_at);const d=u-n;if(d<=0||data.is_hacked){clearInterval(timerInterval);overlay.classList.remove('hidden');safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});safeModel.setAttribute('src','/safe-open.glb');document.getElementById('status-container').classList.add('hidden');document.getElementById('passcode-section').classList.add('hidden');document.getElementById('reveal-section').classList.remove('hidden');tg.HapticFeedback.notificationOccurred('success')}else{const h=Math.floor(d/(36e5));const m=Math.floor((d%36e5)/6e4);const s=Math.floor((d%6e4)/1e3);document.getElementById('timer').innerText=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`}};updateTimer();timerInterval=setInterval(updateTimer,1000)}
+            }catch(e){tg.showAlert("Ошибка загрузки.")}
+        }
+        function renderGroupProgress(data) {
+            const c=data.stars_contributions||{};const g=data.goal_stars||500;let t=0;
+            for(const[k,v]of Object.entries(c))t+=v;
+            const p=Math.min(100,Math.round((t/g)*100));
+            document.getElementById('group-progress-fill').style.width=p+'%';
+            document.getElementById('group-progress-text').textContent=`${t} / ${g} ⭐`;
+            document.getElementById('group-progress-pct').textContent=p+'%';
+            const list=document.getElementById('contributor-list');list.innerHTML='';
+            for(const[uid,amt]of Object.entries(c)){const pill=document.createElement('span');pill.className='contributor-pill';pill.textContent=`🆔${uid.slice(-4)}: ${amt}⭐`;list.appendChild(pill)}
+            if(data.is_hacked){document.getElementById('contribute-btn').disabled=true;document.getElementById('contribute-btn').textContent='✅ Взломан!'}
+        }
+        async function contributeStars() {
+            if(!currentCapsuleId)return;
+            const uid=tg.initDataUnsafe?.user?.id;if(!uid)return tg.showAlert('Нужен Telegram ID');
+            tg.HapticFeedback.impactOccurred('medium');
+            try{const r=await fetch('/api/contribute',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:currentCapsuleId,user_id:uid,amount:50})});const d=await r.json();capsuleData.stars_contributions=d.stars_contributions;capsuleData.is_hacked=d.is_hacked;renderGroupProgress(capsuleData);if(d.is_hacked){fireConfetti();tg.showAlert('🎉 Капсула взломана!');loadCapsule(currentCapsuleId)}}catch(e){tg.showAlert('Ошибка.')}
+        }
+        function startGeoWatch(data) {
+            if(!navigator.geolocation){document.getElementById('geo-status-text').textContent='Геолокация не поддерживается';return}
+            document.getElementById('geo-status-text').textContent='Поиск позиции...';
+            const check=(pos)=>{lastGeoPos=pos;
+                const lat=pos.coords.latitude,lng=pos.coords.longitude;
+                const R=6371000;
+                const dLat=(data.geo_lat-lat)*Math.PI/180,dLng=(data.geo_lng-lng)*Math.PI/180;
+                const a=Math.sin(dLat/2)**2+Math.cos(lat*Math.PI/180)*Math.cos(data.geo_lat*Math.PI/180)*Math.sin(dLng/2)**2;
+                const dist=Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
+                document.getElementById('geo-distance').textContent=dist;
+                const dot=document.getElementById('geo-status-dot'),st=document.getElementById('geo-status-text'),ub=document.getElementById('geo-unlock-btn');
+                const bearing=Math.atan2(dLng,dLat)*180/Math.PI;
+                document.getElementById('compass-needle').style.transform=`rotate(${bearing}deg)`;
+                if(dist<=(data.geo_radius||50)){dot.className='geo-status-dot unlocked';st.textContent='Ты на месте!';ub.classList.remove('hidden')}
+                else if(dist<200){dot.className='geo-status-dot near';st.textContent=`Совсем рядом!`;ub.classList.add('hidden')}
+                else{dot.className='geo-status-dot';st.textContent=`До цели ${dist}м`;ub.classList.add('hidden')}
+            };
+            navigator.geolocation.getCurrentPosition(check,()=>{document.getElementById('geo-status-text').textContent='Ошибка позиции'},{enableHighAccuracy:true});
+            geoWatchId=navigator.geolocation.watchPosition(check,null,{enableHighAccuracy:true,maximumAge:5000});
+        }
+        async function unlockGeo() {
+            if(!capsuleData||!lastGeoPos)return tg.showAlert('Сначала дождись определения позиции!');
+            try{const r=await fetch('/api/geo-check',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:currentCapsuleId,lat:lastGeoPos.coords.latitude,lng:lastGeoPos.coords.longitude})});const d=await r.json();if(d.unlocked||capsuleData.is_hacked){capsuleData.is_hacked=true;document.getElementById('geo-unlock-btn').disabled=true;document.getElementById('geo-unlock-btn').textContent='✅ Открыто!';fireConfetti();loadCapsule(currentCapsuleId)}else{tg.showAlert(`Не на месте! ${Math.round(d.distance)}м`)}}
+            catch(e){tg.showAlert('Ошибка.')}
         }
         async function revealSecret() {
             const model = document.getElementById('safe-model');

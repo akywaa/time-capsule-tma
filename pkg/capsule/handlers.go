@@ -97,14 +97,19 @@ func RequireTWA(botToken string, next http.HandlerFunc) http.HandlerFunc {
 func MakeCreateHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			SenderID     int64  `json:"sender_id"`
-			Content      string `json:"content"`
-			Hours        int    `json:"hours"`
-			Passcode     string `json:"passcode"`     // 4 цифры или пусто
-			MediaType    string `json:"media_type"`   // "text", "photo", "voice"
-			HackPrice    int    `json:"hack_price"`   // цена взлома (0 = default 50)
-			AllowHack    bool   `json:"allow_hack"`   // разрешить взлом за звёзды
-			AllowHackSet bool   `json:"allow_hack_set"` // был ли явно установлен флаг
+			SenderID     int64   `json:"sender_id"`
+			Content      string  `json:"content"`
+			Hours        int     `json:"hours"`
+			Passcode     string  `json:"passcode"`
+			MediaType    string  `json:"media_type"`
+			HackPrice    int     `json:"hack_price"`
+			AllowHack    bool    `json:"allow_hack"`
+			AllowHackSet bool    `json:"allow_hack_set"`
+			CapsuleType  string  `json:"capsule_type"`
+			GoalStars    int     `json:"goal_stars"`
+			GeoLat       float64 `json:"geo_lat"`
+			GeoLng       float64 `json:"geo_lng"`
+			GeoRadius    int     `json:"geo_radius"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, `{"error":"Invalid payload"}`, 400)
@@ -115,20 +120,30 @@ func MakeCreateHandler(store Store) http.HandlerFunc {
 			req.MediaType = "text"
 		}
 
+		if req.CapsuleType == "" {
+			req.CapsuleType = "personal"
+		}
+
 		c := &Capsule{
-			ID:               uuid.New().String(),
-			SenderID:         req.SenderID,
-			Content:          req.Content,
-			UnlockAt:         time.Now().UTC().Add(time.Duration(req.Hours) * time.Hour),
-			IsHacked:         false,
-			Passcode:         req.Passcode,
-			PasscodeAttempts: 3,
-			MediaType:        req.MediaType,
-			Reactions:        make(map[string]int),
-			ReactionsUsers:   make(map[int64]string),
-			ReminderSent:     false,
-			HackPrice:        req.HackPrice,
-			AllowHack:        req.AllowHack,
+			ID:                 uuid.New().String(),
+			SenderID:           req.SenderID,
+			Content:            req.Content,
+			UnlockAt:           time.Now().UTC().Add(time.Duration(req.Hours) * time.Hour),
+			IsHacked:           false,
+			Passcode:           req.Passcode,
+			PasscodeAttempts:   3,
+			MediaType:          req.MediaType,
+			Reactions:          make(map[string]int),
+			ReactionsUsers:     make(map[int64]string),
+			ReminderSent:       false,
+			HackPrice:          req.HackPrice,
+			AllowHack:          req.AllowHack,
+			CapsuleType:        req.CapsuleType,
+			GoalStars:          req.GoalStars,
+			StarsContributions: make(map[int64]int),
+			GeoLat:             req.GeoLat,
+			GeoLng:             req.GeoLng,
+			GeoRadius:          req.GeoRadius,
 		}
 		if c.HackPrice <= 0 {
 			c.HackPrice = 50 // default
@@ -175,16 +190,22 @@ func MakeGetHandler(store Store) http.HandlerFunc {
 
 		// Собираем ответ
 		resp := map[string]interface{}{
-			"id":                c.ID,
-			"sender_id":         c.SenderID,
-			"unlock_at":         c.UnlockAt,
-			"is_hacked":         c.IsHacked,
-			"media_type":        c.MediaType,
-			"has_passcode":      c.Passcode != "",
-			"passcode_attempts": c.PasscodeAttempts,
-			"reactions":         c.Reactions,
-			"hack_price":        c.HackPrice,
-			"allow_hack":        c.AllowHack,
+			"id":                  c.ID,
+			"sender_id":           c.SenderID,
+			"unlock_at":           c.UnlockAt,
+			"is_hacked":           c.IsHacked,
+			"media_type":          c.MediaType,
+			"has_passcode":        c.Passcode != "",
+			"passcode_attempts":   c.PasscodeAttempts,
+			"reactions":           c.Reactions,
+			"hack_price":          c.HackPrice,
+			"allow_hack":          c.AllowHack,
+			"capsule_type":        c.CapsuleType,
+			"goal_stars":          c.GoalStars,
+			"stars_contributions": c.StarsContributions,
+			"geo_lat":             c.GeoLat,
+			"geo_lng":             c.GeoLng,
+			"geo_radius":          c.GeoRadius,
 		}
 
 		isUnlocked := time.Now().UTC().After(c.UnlockAt) || c.IsHacked
@@ -294,6 +315,60 @@ func MakePasscodeHandler(store Store) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"success":  success,
 			"attempts": remaining,
+		})
+	}
+}
+
+// MakeContributeHandler — POST /api/contribute (для Group Drop)
+func MakeContributeHandler(store Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID     string `json:"id"`
+			UserID int64  `json:"user_id"`
+			Amount int    `json:"amount"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, `{"error":"Invalid payload"}`, 400)
+			return
+		}
+		c, err := store.Contribute(req.ID, req.UserID, req.Amount)
+		if err != nil {
+			http.Error(w, `{"error":"Contribute failed"}`, 500)
+			return
+		}
+		total := 0
+		for _, v := range c.StarsContributions {
+			total += v
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"is_hacked":           c.IsHacked,
+			"stars_contributions": c.StarsContributions,
+			"goal_stars":          c.GoalStars,
+			"total":               total,
+		})
+	}
+}
+
+// MakeGeoCheckHandler — POST /api/geo-check
+func MakeGeoCheckHandler(store Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID  string  `json:"id"`
+			Lat float64 `json:"lat"`
+			Lng float64 `json:"lng"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, `{"error":"Invalid payload"}`, 400)
+			return
+		}
+		unlocked, dist, err := store.GeoCheck(req.ID, req.Lat, req.Lng)
+		if err != nil {
+			http.Error(w, `{"error":"Not Found"}`, 404)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"unlocked": unlocked,
+			"distance": dist,
 		})
 	}
 }
