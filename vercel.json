@@ -7,12 +7,20 @@
     {
       "src": "index.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "safe.glb",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
       "dest": "/api/index.go"
+    },
+    {
+      "src": "/safe.glb",
+      "dest": "/safe.glb"
     },
     {
       "src": "/(.*)",

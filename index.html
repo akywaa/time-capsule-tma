@@ -4,50 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Time Capsule</title>
+    <!-- Подключаем Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Подключаем 3D-движок для моделей -->
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <!-- Красивый шрифт -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
     <style>
-        :root { --bg: #0f0f13; --bg-card: #1c1c24; --text: #ffffff; --accent: #007aff; --star: #f5a623; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 20px; text-align: center; margin: 0; }
+        :root { 
+            --bg: #09090b; 
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #ffffff; 
+            --accent: #007aff; 
+            --accent-glow: rgba(0, 122, 255, 0.5);
+            --star: #f5a623; 
+            --star-glow: rgba(245, 166, 35, 0.5);
+        }
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            background-image: radial-gradient(circle at 50% -20%, #1a1a24 0%, var(--bg) 80%);
+            color: var(--text); 
+            padding: 24px 16px; 
+            text-align: center; 
+            margin: 0; 
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
         
         .hidden { display: none !important; }
         
-        /* Элементы форм */
-        textarea, select { width: 100%; box-sizing: border-box; padding: 16px; margin: 10px 0; border-radius: 16px; border: 1px solid #333; background: var(--bg-card); color: white; font-size: 16px; resize: none; }
-        textarea:focus, select:focus { outline: none; border-color: var(--accent); }
-        
-        button { width: 100%; padding: 16px; border-radius: 16px; background: var(--accent); color: white; border: none; font-weight: 800; font-size: 16px; cursor: pointer; margin-top: 10px; transition: transform 0.1s; }
-        button:active { transform: scale(0.97); }
-        
-        /* Кнопка взлома */
-        .btn-stars { background: linear-gradient(135deg, #f0a010, #d98010); color: #1a0a00; box-shadow: 0 8px 20px rgba(240, 160, 16, 0.3); display: flex; align-items: center; justify-content: center; gap: 8px; }
-        
-        /* 3D Сейф и Анимация */
-        .safe-container { font-size: 100px; margin: 40px 0; display: inline-block; animation: float 3s ease-in-out infinite; filter: drop-shadow(0 10px 30px rgba(0, 122, 255, 0.4)); }
-        @keyframes float {
-            0% { transform: translateY(0px) rotate(-2deg); }
-            50% { transform: translateY(-15px) rotate(2deg); }
-            100% { transform: translateY(0px) rotate(-2deg); }
+        h2 { font-weight: 800; font-size: 28px; margin-bottom: 8px; letter-spacing: -0.5px; }
+        p { color: #a1a1aa; font-size: 15px; margin-top: 0; line-height: 1.4; }
+
+        /* Элементы форм (Glassmorphism) */
+        textarea, select { 
+            width: 100%; 
+            box-sizing: border-box; 
+            padding: 16px; 
+            margin: 12px 0; 
+            border-radius: 16px; 
+            border: 1px solid var(--glass-border); 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(10px);
+            color: white; 
+            font-size: 16px; 
+            font-family: inherit;
+            resize: none; 
+            transition: all 0.3s ease;
+        }
+        textarea:focus, select:focus { 
+            outline: none; 
+            border-color: var(--accent); 
+            box-shadow: 0 0 15px var(--accent-glow);
         }
         
-        .timer { font-size: 38px; font-weight: 800; font-variant-numeric: tabular-nums; margin-bottom: 24px; color: var(--accent); }
+        button { 
+            width: 100%; 
+            padding: 16px; 
+            border-radius: 16px; 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            font-weight: 600; 
+            font-size: 16px; 
+            cursor: pointer; 
+            margin-top: 16px; 
+            transition: transform 0.1s, box-shadow 0.3s; 
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+        button:active { transform: scale(0.96); }
+        button:disabled { opacity: 0.6; pointer-events: none; }
         
-        .content-box { background: var(--bg-card); padding: 24px; border-radius: 20px; margin-top: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: left; }
-        .content-box h3 { margin-top: 0; color: var(--star); }
+        /* Кнопка взлома */
+        .btn-stars { 
+            background: linear-gradient(135deg, #f0a010, #d98010); 
+            color: #1a0a00; 
+            box-shadow: 0 4px 20px var(--star-glow); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+        }
+        
+        /* 3D Сейф */
+        .model-container {
+            width: 100%;
+            height: 280px;
+            margin: 20px 0;
+            position: relative;
+        }
+        
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            --poster-color: transparent;
+            outline: none;
+        }
+
+        /* Таймер */
+        .timer-wrapper {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .timer { 
+            font-size: 42px; 
+            font-weight: 800; 
+            font-variant-numeric: tabular-nums; 
+            color: var(--text);
+            text-shadow: 0 0 20px rgba(255,255,255,0.2);
+            margin-top: 8px;
+        }
+        
+        .content-box { 
+            background: var(--glass-bg); 
+            padding: 24px; 
+            border-radius: 20px; 
+            margin-top: 20px; 
+            border: 1px solid var(--glass-border); 
+            text-align: left; 
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.5s ease;
+        }
+        .content-box h3 { margin-top: 0; color: var(--accent); font-weight: 800; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 
     <!-- ЭКРАН СОЗДАНИЯ -->
     <div id="create-view" class="hidden">
-        <h2 style="margin-bottom: 8px;">Капсула времени ⏳</h2>
-        <p style="color: #888; font-size: 14px; margin-top: 0;">Спрячь секрет от друга на время!</p>
+        <h2>Капсула времени ⏳</h2>
+        <p>Спрячь секрет или признание от друга на время. Доступ откроется только по таймеру!</p>
         
-        <textarea id="text-input" rows="5" placeholder="Напиши свой секрет или послание..."></textarea>
+        <textarea id="text-input" rows="4" placeholder="Напиши свой секрет здесь..."></textarea>
         
         <select id="time-input">
-            <option value="1">Закрыть на 1 час</option>
-            <option value="24">Закрыть на 24 часа</option>
-            <option value="168">Закрыть на 1 неделю</option>
+            <option value="1">🔒 Запереть на 1 час</option>
+            <option value="24">🔒 Запереть на 24 часа</option>
+            <option value="168">🔒 Запереть на 1 неделю</option>
         </select>
         
         <button onclick="createCapsule()" id="create-btn">Спрятать в сейф</button>
@@ -55,20 +162,39 @@
 
     <!-- ЭКРАН ПРОСМОТРА / ВЗЛОМА -->
     <div id="view-view" class="hidden">
-        <div class="safe-container" id="safe-icon">🗄️</div>
+        
+        <!-- 3D МОДЕЛЬ СЕЙФА -->
+        <div class="model-container">
+            <!-- 
+              src="safe.glb" - путь к 3D модели.
+              auto-rotate - автоматически крутится.
+              camera-controls - позволяет крутить модель пальцем.
+              disable-zoom - чтобы страница не дергалась при попытке скролла.
+            -->
+            <model-viewer id="safe-model" 
+                          src="/safe.glb" 
+                          auto-rotate 
+                          camera-controls 
+                          disable-zoom 
+                          shadow-intensity="1" 
+                          interaction-prompt="none">
+            </model-viewer>
+        </div>
         
         <div id="status-container">
-            <div style="color: #888; font-weight: 600; margin-bottom: 8px;">До открытия осталось:</div>
-            <div class="timer" id="timer">--:--:--</div>
+            <div class="timer-wrapper">
+                <div style="color: #a1a1aa; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Сейф откроется через</div>
+                <div class="timer" id="timer">--:--:--</div>
+            </div>
             
             <button id="hack-btn" class="btn-stars hidden" onclick="hackCapsule()">
-                ⭐️ Не терпится? Взломать (50 Stars)
+                ⭐️ Взломать досрочно (50 Stars)
             </button>
         </div>
         
         <div id="content-box" class="content-box hidden">
             <h3>Секрет раскрыт 🔓</h3>
-            <p id="secret-content" style="white-space: pre-wrap; line-height: 1.5; margin-bottom: 0;"></p>
+            <p id="secret-content" style="white-space: pre-wrap; line-height: 1.6; margin-bottom: 0;"></p>
         </div>
     </div>
 
@@ -76,11 +202,9 @@
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
-        tg.setHeaderColor('#0f0f13');
+        tg.setHeaderColor('#09090b'); // Темный цвет под новый фон
 
-        // Твой юзернейм бота для формирования ссылки-приглашения
         const BOT_USERNAME = "KapsulaVremeni_bot"; 
-        
         const startParam = tg.initDataUnsafe?.start_param;
         let currentCapsuleId = null;
 
@@ -92,24 +216,25 @@
             document.getElementById('create-view').classList.remove('hidden');
         }
 
-        // --- ЛОГИКА СОЗДАНИЯ ---
         async function createCapsule() {
             const text = document.getElementById('text-input').value.trim();
             const hours = document.getElementById('time-input').value;
             const senderId = tg.initDataUnsafe?.user?.id;
 
             if (!text) return tg.showAlert("Сначала напиши секрет!");
-            if (!senderId) return tg.showAlert("Ошибка авторизации Telegram.");
-
+            
             const btn = document.getElementById('create-btn');
             btn.disabled = true;
             btn.innerText = "Прячем...";
 
             try {
+                // Если тестируешь в браузере без ТГ, используем фейковый ID
+                const reqSenderId = senderId || 123456789; 
+
                 const res = await fetch('/api/create', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ sender_id: senderId, content: text, hours: parseInt(hours) })
+                    body: JSON.stringify({ sender_id: reqSenderId, content: text, hours: parseInt(hours) })
                 });
                 const data = await res.json();
                 
@@ -118,13 +243,12 @@
                 
                 tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`);
             } catch(e) {
-                tg.showAlert("Ошибка сервера");
+                tg.showAlert("Ошибка сервера. Попробуй позже.");
                 btn.disabled = false;
                 btn.innerText = "Спрятать в сейф";
             }
         }
 
-        // --- ЛОГИКА ПРОСМОТРА И ТАЙМЕРА ---
         let timerInterval;
         async function loadCapsule(id) {
             try {
@@ -140,18 +264,18 @@
                     const diff = unlockAt - now;
 
                     if (diff <= 0 || data.is_hacked) {
-                        // КАПСУЛА ОТКРЫТА
                         clearInterval(timerInterval);
+                        
+                        // Меняем визуал открытого сейфа
                         document.getElementById('status-container').classList.add('hidden');
-                        document.getElementById('safe-icon').innerText = '🔓';
-                        document.getElementById('safe-icon').style.animation = 'none';
-                        document.getElementById('safe-icon').style.filter = 'drop-shadow(0 10px 30px rgba(245, 166, 35, 0.4))';
+                        
+                        // Если найдешь модель открытого сейфа, можно поменять ее тут:
+                        // document.getElementById('safe-model').setAttribute('src', '/safe_open.glb');
                         
                         document.getElementById('content-box').classList.remove('hidden');
                         document.getElementById('secret-content').innerText = data.content;
                         tg.HapticFeedback.notificationOccurred('success');
                     } else {
-                        // ТАЙМЕР ТИКАЕТ
                         document.getElementById('hack-btn').classList.remove('hidden');
                         const h = Math.floor(diff / (1000 * 60 * 60));
                         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -168,7 +292,6 @@
             }
         }
 
-        // --- ЛОГИКА ВЗЛОМА (STARS) ---
         async function hackCapsule() {
             tg.HapticFeedback.impactOccurred('medium');
             try {
@@ -179,7 +302,7 @@
                     tg.openInvoice(data.url, (status) => {
                         if (status === 'paid' || status === 'pending') {
                             tg.showAlert("Успех! Сейф взломан 💥");
-                            loadCapsule(currentCapsuleId); // Перезагружаем капсулу, она откроется
+                            loadCapsule(currentCapsuleId); 
                         }
                     });
                 }
