@@ -40,15 +40,22 @@
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
         model-viewer{width:100%;height:100%;--poster-color:transparent;outline:none;position:relative;z-index:1;transition:filter 0.8s ease}
         model-viewer.zooming{filter:brightness(0.3) blur(2px)}
-        .reveal-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;animation:fadeSlideUp 0.5s cubic-bezier(0.4,0,0.2,1);pointer-events:all}
-        .reveal-title{font-size:28px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#22c55e,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;animation:titlePop 0.6s cubic-bezier(0.68,-0.55,0.27,1.55)}
+        .reveal-section{padding:12px 0 8px;animation:fadeSlideUp 0.5s cubic-bezier(0.4,0,0.2,1)}
+        .reveal-overlay{display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:all}
+        .reveal-title{font-size:24px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#22c55e,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:2px;animation:titlePop 0.6s cubic-bezier(0.68,-0.55,0.27,1.55)}
         @keyframes titlePop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
-        .reveal-sub{color:var(--text-dim);font-size:14px;margin-bottom:20px;font-weight:500}
+        .reveal-sub{color:var(--text-dim);font-size:13px;margin-bottom:14px;font-weight:500}
         .reveal-btn{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;padding:14px 36px;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 0 32px rgba(34,197,94,0.3),0 4px 16px rgba(0,0,0,0.4);transition:all 0.3s;font-family:inherit;animation:revealPulse 2s ease-in-out infinite;letter-spacing:0.02em}
         @keyframes revealPulse{0%,100%{box-shadow:0 0 32px rgba(34,197,94,0.3),0 4px 16px rgba(0,0,0,0.4)}50%{box-shadow:0 0 48px rgba(34,197,94,0.5),0 4px 24px rgba(34,197,94,0.3)}}
         .reveal-btn:hover{transform:scale(1.04)}.reveal-btn:active{transform:scale(0.95)}
         .dots-pulse .dots::after{content:'';animation:dots 1.2s steps(4,end) infinite}
         @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:''}}
+        .secret-popup{position:absolute;inset:12px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10;pointer-events:all;animation:popOut 0.7s cubic-bezier(0.68,-0.55,0.27,1.55) forwards}
+        @keyframes popOut{0%{transform:scale(0) rotate(-10deg);opacity:0}50%{transform:scale(1.08) rotate(2deg);opacity:1}70%{transform:scale(0.95) rotate(-1deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
+        .secret-popup-card{background:rgba(3,5,10,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(34,197,94,0.25);border-radius:18px;padding:20px 18px;text-align:left;width:100%;max-height:85%;overflow-y:auto;box-shadow:0 0 40px rgba(34,197,94,0.15),0 8px 32px rgba(0,0,0,0.5)}
+        .secret-popup-card h4{font-weight:800;font-size:16px;margin:0 0 10px;color:#22c55e;display:flex;align-items:center;gap:6px}
+        .secret-popup .secret-close{position:absolute;top:18px;right:22px;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text-dim);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:all 0.2s}
+        .secret-popup .secret-close:hover{background:rgba(255,255,255,0.12);color:#fff}
         .safe-flash{position:fixed;inset:0;background:white;opacity:0;pointer-events:none;z-index:100;transition:opacity 0.15s ease}
         .loading-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;transition:opacity 0.4s ease;pointer-events:none}
         .loading-overlay.hidden{opacity:0}
@@ -140,7 +147,16 @@
             <div class="model-container" id="model-container">
                 <model-viewer id="safe-model" auto-rotate camera-controls disable-zoom shadow-intensity="1" interaction-prompt="none"></model-viewer>
                 <div class="loading-overlay" id="loading-overlay"><div class="spinner"></div><div class="loading-text">Загрузка сейфа</div></div>
-                <div class="reveal-overlay hidden" id="reveal-overlay">
+                <div class="secret-popup hidden" id="secret-popup">
+                    <button class="secret-close" onclick="closeSecret()">✕</button>
+                    <div class="secret-popup-card">
+                        <h4>🔓 Секрет раскрыт!</h4>
+                        <div id="secret-content"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="reveal-section hidden" id="reveal-section">
+                <div class="reveal-overlay">
                     <div class="reveal-title">Время вышло! 🔓</div>
                     <div class="reveal-sub">Сейф готов открыть свою тайну</div>
                     <button class="reveal-btn" onclick="revealSecret()">Раскрыть секрет</button>
@@ -172,10 +188,7 @@
                 <button class="reaction-btn" onclick="sendReaction('🔥')">🔥 <span class="reaction-count" id="rc-🔥">0</span></button>
                 <button class="reaction-btn" onclick="sendReaction('💎')">💎 <span class="reaction-count" id="rc-💎">0</span></button>
             </div>
-            <div id="content-box" class="content-box hidden">
-                <h3><span class="unlock-icon">🔓</span> Секрет раскрыт</h3>
-                <div id="secret-content"></div>
-            </div>
+
         </div>
     </div>
     <script>
@@ -293,8 +306,7 @@
                 safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
                 const isOpen = data.is_hacked || new Date() >= new Date(data.unlock_at);
                 overlay.classList.remove('hidden');
-                // Всегда закрытый сейф
-                safeModel.setAttribute('src','/safe-closed.glb');
+                safeModel.setAttribute('src', isOpen ? '/safe-closed.glb' : '/safe.glb');
                 updateReactions(data.reactions || {});
                 const passcodeSection = document.getElementById('passcode-section');
                 if (data.has_passcode && !isOpen) {
@@ -312,15 +324,21 @@
                     const diff = unlockAt - now;
                     if (diff <= 0) {
                         clearInterval(timerInterval);
+                        overlay.classList.remove('hidden');
+                        safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
+                        safeModel.setAttribute('src','/safe-closed.glb');
                         document.getElementById('status-container').classList.add('hidden');
                         document.getElementById('passcode-section').classList.add('hidden');
-                        document.getElementById('reveal-overlay').classList.remove('hidden');
+                        document.getElementById('reveal-section').classList.remove('hidden');
                         tg.HapticFeedback.notificationOccurred('success');
                     } else if (data.is_hacked) {
                         clearInterval(timerInterval);
+                        overlay.classList.remove('hidden');
+                        safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
+                        safeModel.setAttribute('src','/safe-closed.glb');
                         document.getElementById('status-container').classList.add('hidden');
                         document.getElementById('passcode-section').classList.add('hidden');
-                        document.getElementById('reveal-overlay').classList.remove('hidden');
+                        document.getElementById('reveal-section').classList.remove('hidden');
                         tg.HapticFeedback.notificationOccurred('success');
                     } else {
                         document.getElementById('hack-btn').classList.remove('hidden');
@@ -334,7 +352,7 @@
                 if (isOpen) {
                     document.getElementById('status-container').classList.add('hidden');
                     document.getElementById('passcode-section').classList.add('hidden');
-                    document.getElementById('reveal-overlay').classList.remove('hidden');
+                    document.getElementById('reveal-section').classList.remove('hidden');
                     fireConfetti();
                 }
                 timerInterval = setInterval(updateTimer,1000);
@@ -342,23 +360,25 @@
         }
         async function revealSecret() {
             const model = document.getElementById('safe-model');
-            const overlay = document.getElementById('reveal-overlay');
+            const section = document.getElementById('reveal-section');
             const flash = document.getElementById('safe-flash');
+            const popup = document.getElementById('secret-popup');
             const data = capsuleData;
             if (!data) return;
-            // Убираем кнопку
-            overlay.innerHTML = '<div class="reveal-title dots-pulse">Открываем<span class="dots"></span></div>';
+            // Меняем кнопку на загрузку
+            section.querySelector('.reveal-title').innerHTML = 'Открываем<span class="dots-pulse"><span class="dots"></span></span>';
+            section.querySelector('.reveal-sub').classList.add('hidden');
+            section.querySelector('.reveal-btn').classList.add('hidden');
             tg.HapticFeedback.impactOccurred('heavy');
             // Останавливаем авто-вращение и зумим камеру
             model.removeAttribute('auto-rotate');
             model.classList.add('zooming');
-            // Анимация: камера влетает в сейф
             model.cameraOrbit = '0deg 60deg 3m';
             await sleep(200);
-            model.fieldOfView = '30deg';
+            model.setAttribute('field-of-view','30deg');
             model.cameraOrbit = '0deg 80deg 1.5m';
             await sleep(400);
-            model.fieldOfView = '12deg';
+            model.setAttribute('field-of-view','12deg');
             model.cameraOrbit = '10deg 85deg 0.6m';
             await sleep(500);
             // Вспышка
@@ -366,25 +386,34 @@
             await sleep(150);
             flash.style.opacity = '0';
             await sleep(100);
-            // Сброс камеры и показ контента
+            // Сброс камеры
             model.classList.remove('zooming');
-            model.fieldOfView = '45deg';
+            model.setAttribute('field-of-view','45deg');
             model.cameraOrbit = '45deg 75deg 4m';
             model.setAttribute('auto-rotate', '');
-            overlay.classList.add('hidden');
-            document.getElementById('content-box').classList.remove('hidden');
-            showContent(data);
+            // Прячем reveal-секцию
+            section.classList.add('hidden');
+            // Показываем секрет поверх сейфа с анимацией выпрыгивания
+            popup.classList.remove('hidden');
+            document.getElementById('secret-content').innerHTML = buildContent(data);
             fireConfetti();
         }
+        function closeSecret() {
+            document.getElementById('secret-popup').classList.add('hidden');
+            document.getElementById('reveal-section').classList.remove('hidden');
+            const section = document.getElementById('reveal-section');
+            section.querySelector('.reveal-title').textContent = 'Время вышло! 🔓';
+            section.querySelector('.reveal-sub').classList.remove('hidden');
+            section.querySelector('.reveal-btn').classList.remove('hidden');
+        }
         function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-        function showContent(data) {
-            const container = document.getElementById('secret-content');
+        function buildContent(data) {
             if (data.media_type === 'photo') {
-                container.innerHTML = `<img src="${data.content}" class="secret-photo" alt="Секретное фото">`;
+                return `<img src="${data.content}" class="secret-photo" alt="Секретное фото">`;
             } else if (data.media_type === 'voice') {
-                container.innerHTML = `<audio controls class="secret-audio" src="${data.content}"></audio>`;
+                return `<audio controls class="secret-audio" src="${data.content}"></audio>`;
             } else {
-                container.innerHTML = `<div class="secret-content">${escapeHtml(data.content)}</div>`;
+                return `<div class="secret-content">${escapeHtml(data.content)}</div>`;
             }
         }
         function escapeHtml(text) {
