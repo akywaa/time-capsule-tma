@@ -13,7 +13,7 @@
       "use": "@vercel/static"
     },
     {
-      "src": "safe-closed.glb",
+      "src": "safe-open.glb",
       "use": "@vercel/static"
     }
   ],
@@ -27,8 +27,8 @@
       "dest": "/safe.glb"
     },
     {
-      "src": "/safe-closed.glb",
-      "dest": "/safe-closed.glb"
+      "src": "/safe-open.glb",
+      "dest": "/safe-open.glb"
     },
     {
       "src": "/(.*)",

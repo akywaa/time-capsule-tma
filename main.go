@@ -89,7 +89,7 @@ func main() {
 	// Статика: безопасно отдаём файлы с диска
 	fs := http.FileServer(http.Dir("."))
 	http.Handle("/safe.glb", fs)
-	http.Handle("/safe-closed.glb", fs)
+	http.Handle("/safe-open.glb", fs)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)

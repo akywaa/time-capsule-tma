@@ -306,7 +306,7 @@
                 safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
                 const isOpen = data.is_hacked || new Date() >= new Date(data.unlock_at);
                 overlay.classList.remove('hidden');
-                safeModel.setAttribute('src', isOpen ? '/safe-closed.glb' : '/safe.glb');
+                safeModel.setAttribute('src', isOpen ? '/safe-open.glb' : '/safe.glb');
                 updateReactions(data.reactions || {});
                 const passcodeSection = document.getElementById('passcode-section');
                 if (data.has_passcode && !isOpen) {
@@ -326,7 +326,7 @@
                         clearInterval(timerInterval);
                         overlay.classList.remove('hidden');
                         safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
-                        safeModel.setAttribute('src','/safe-closed.glb');
+                        safeModel.setAttribute('src','/safe-open.glb');
                         document.getElementById('status-container').classList.add('hidden');
                         document.getElementById('passcode-section').classList.add('hidden');
                         document.getElementById('reveal-section').classList.remove('hidden');
@@ -335,7 +335,7 @@
                         clearInterval(timerInterval);
                         overlay.classList.remove('hidden');
                         safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
-                        safeModel.setAttribute('src','/safe-closed.glb');
+                        safeModel.setAttribute('src','/safe-open.glb');
                         document.getElementById('status-container').classList.add('hidden');
                         document.getElementById('passcode-section').classList.add('hidden');
                         document.getElementById('reveal-section').classList.remove('hidden');
