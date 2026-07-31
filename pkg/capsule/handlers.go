@@ -96,21 +96,22 @@ func RequireTWA(botToken string, next http.HandlerFunc) http.HandlerFunc {
 // MakeCreateHandler — POST /api/create
 func MakeCreateHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var req struct {
-			SenderID     int64   `json:"sender_id"`
-			Content      string  `json:"content"`
-			Hours        int     `json:"hours"`
-			Passcode     string  `json:"passcode"`
-			MediaType    string  `json:"media_type"`
-			HackPrice    int     `json:"hack_price"`
-			AllowHack    bool    `json:"allow_hack"`
-			AllowHackSet bool    `json:"allow_hack_set"`
-			CapsuleType  string  `json:"capsule_type"`
-			GoalStars    int     `json:"goal_stars"`
-			GeoLat       float64 `json:"geo_lat"`
-			GeoLng       float64 `json:"geo_lng"`
-			GeoRadius    int     `json:"geo_radius"`
-		}
+	var req struct {
+		SenderID     int64   `json:"sender_id"`
+		Content      string  `json:"content"`
+		Hours        int     `json:"hours"`
+		Passcode     string  `json:"passcode"`
+		MediaType    string  `json:"media_type"`
+		HackPrice    int     `json:"hack_price"`
+		AllowHack    bool    `json:"allow_hack"`
+		AllowHackSet bool    `json:"allow_hack_set"`
+		CapsuleType  string  `json:"capsule_type"`
+		GoalStars    int     `json:"goal_stars"`
+		GeoLat       float64 `json:"geo_lat"`
+		GeoLng       float64 `json:"geo_lng"`
+		GeoRadius    int     `json:"geo_radius"`
+		ModelType    string  `json:"model_type"`
+	}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, `{"error":"Invalid payload"}`, 400)
 			return
@@ -120,11 +121,15 @@ func MakeCreateHandler(store Store) http.HandlerFunc {
 			req.MediaType = "text"
 		}
 
-		if req.CapsuleType == "" {
-			req.CapsuleType = "personal"
-		}
+	if req.CapsuleType == "" {
+		req.CapsuleType = "personal"
+	}
 
-		c := &Capsule{
+	if req.ModelType == "" {
+		req.ModelType = "safe"
+	}
+
+	c := &Capsule{
 			ID:                 uuid.New().String(),
 			SenderID:           req.SenderID,
 			Content:            req.Content,
@@ -141,10 +146,11 @@ func MakeCreateHandler(store Store) http.HandlerFunc {
 			CapsuleType:        req.CapsuleType,
 			GoalStars:          req.GoalStars,
 			StarsContributions: make(map[int64]int),
-			GeoLat:             req.GeoLat,
-			GeoLng:             req.GeoLng,
-			GeoRadius:          req.GeoRadius,
-		}
+		GeoLat:             req.GeoLat,
+		GeoLng:             req.GeoLng,
+		GeoRadius:          req.GeoRadius,
+		ModelType:          req.ModelType,
+	}
 		if c.HackPrice <= 0 {
 			c.HackPrice = 50 // default
 		}
@@ -203,10 +209,11 @@ func MakeGetHandler(store Store) http.HandlerFunc {
 			"capsule_type":        c.CapsuleType,
 			"goal_stars":          c.GoalStars,
 			"stars_contributions": c.StarsContributions,
-			"geo_lat":             c.GeoLat,
-			"geo_lng":             c.GeoLng,
-			"geo_radius":          c.GeoRadius,
-		}
+		"geo_lat":             c.GeoLat,
+		"geo_lng":             c.GeoLng,
+		"geo_radius":          c.GeoRadius,
+		"model_type":          c.ModelType,
+	}
 
 		isUnlocked := time.Now().UTC().After(c.UnlockAt) || c.IsHacked
 		if isUnlocked {

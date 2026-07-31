@@ -7,6 +7,8 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root{--bg:#03050a;--surface:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.06);--text:#f4f4f5;--text-dim:#71717a;--accent:#06b6d4;--accent-bright:#22d3ee;--accent-glow:rgba(6,182,212,0.25);--star:#f59e0b;--star-glow:rgba(245,158,11,0.3);--danger:#ef4444;--success:#22c55e;--purple:#8b5cf6;--geo:#10b981;--geo-glow:rgba(16,185,129,0.3)}
@@ -76,6 +78,26 @@
         .geo-fetch-btn.fetching{opacity:0.6;pointer-events:none;animation:pulse 1.5s ease-in-out infinite}
         .geo-coords{display:flex;gap:8px;margin-bottom:10px}
         .geo-coords input{flex:1;text-align:center;font-size:13px!important;padding:10px 8px!important;font-variant-numeric:tabular-nums}
+        /* Leaflet map overrides */
+        .geo-map-wrap{border-radius:16px;overflow:hidden;border:1px solid rgba(16,185,129,0.15);margin-bottom:10px;position:relative}
+        .geo-map-wrap .leaflet-container{height:220px;width:100%;z-index:1;background:#0a0f15!important}
+        .geo-map-wrap .leaflet-control-zoom a{background:rgba(15,18,25,0.95)!important;color:#f4f4f5!important;border-color:rgba(255,255,255,0.08)!important}
+        .geo-map-wrap .leaflet-control-attribution{display:none}
+        .geo-search-wrap{position:relative;margin-bottom:8px}
+        .geo-search-wrap input{width:100%;padding:12px 14px 12px 40px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:all 0.3s}
+        .geo-search-wrap input:focus{border-color:var(--geo);box-shadow:0 0 0 3px var(--geo-glow)}
+        .geo-search-wrap .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;opacity:0.5}
+        .geo-search-results{position:absolute;top:100%;left:0;right:0;background:rgba(15,18,25,0.98);border:1px solid var(--border);border-radius:14px;max-height:180px;overflow-y:auto;z-index:50;backdrop-filter:blur(20px);box-shadow:0 12px 40px rgba(0,0,0,0.5);display:none}
+        .geo-search-results .geo-result-item{padding:12px 14px;cursor:pointer;font-size:13px;color:var(--text-dim);text-align:left;border-bottom:1px solid rgba(255,255,255,0.03);transition:all 0.15s}
+        .geo-search-results .geo-result-item:hover{background:rgba(16,185,129,0.06);color:var(--text)}
+        .geo-search-results .geo-result-item:last-child{border-bottom:none}
+        /* Model Selector */
+        .model-selector{display:flex;gap:6px;margin-bottom:18px}
+        .model-option{flex:1;padding:12px 6px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.015);color:var(--text-dim);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:4px}
+        .model-option .model-icon{font-size:24px;transition:transform 0.3s}
+        .model-option:hover .model-icon{transform:scale(1.15)}
+        .model-option:hover{border-color:rgba(255,255,255,0.15);color:var(--text)}
+        .model-option.active{border-color:var(--accent);background:rgba(6,182,212,0.06);color:var(--accent-bright);box-shadow:0 0 20px var(--accent-glow)}
         /* Group Drop View */
         .group-drop-card{background:var(--surface);border:1px solid rgba(245,158,11,0.15);border-radius:16px;padding:16px;margin-top:12px;text-align:left;animation:fadeSlideUp 0.5s ease}
         .group-drop-card .card-title{font-weight:700;font-size:13px;color:var(--star);margin-bottom:10px;display:flex;align-items:center;gap:6px}
@@ -89,9 +111,6 @@
         /* Geo View */
         .geo-view-card{background:var(--surface);border:1px solid rgba(16,185,129,0.15);border-radius:16px;padding:16px;margin-top:12px;text-align:center;animation:fadeSlideUp 0.5s ease}
         .geo-view-card .card-title{font-weight:700;font-size:13px;color:var(--geo);margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px}
-        .compass-ring{width:100px;height:100px;border-radius:50%;border:3px solid rgba(16,185,129,0.15);margin:0 auto 12px;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(16,185,129,0.05) 0%,transparent 70%)}
-        .compass-needle{position:absolute;width:4px;height:40px;background:linear-gradient(to bottom,var(--danger),var(--geo));border-radius:2px;transform-origin:bottom center;transition:transform 1s cubic-bezier(0.4,0,0.2,1)}
-        .compass-dot{width:12px;height:12px;border-radius:50%;background:var(--geo);box-shadow:0 0 12px var(--geo-glow)}
         .distance-display{font-size:36px;font-weight:900;letter-spacing:-1px;color:var(--geo);margin-bottom:4px;font-variant-numeric:tabular-nums}
         .distance-label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
         .distance-sub{font-size:12px;color:var(--text-dim)}
@@ -221,6 +240,11 @@
         <div id="create-view" class="hidden">
             <div class="brand">Капсула времени</div>
             <p class="subtitle">Спрячь секрет — по таймеру, общими усилиями или в нужном месте</p>
+            <div class="model-selector" id="model-selector">
+                <button class="model-option active" data-model="safe" onclick="switchModel('safe')"><span class="model-icon">🔒</span> Сейф</button>
+                <button class="model-option" data-model="love" onclick="switchModel('love')"><span class="model-icon">❤️</span> Бокс любви</button>
+                <button class="model-option" data-model="scifi" onclick="switchModel('scifi')"><span class="model-icon">🚀</span> Sci-Fi</button>
+            </div>
             <div class="capsule-type-tabs">
                 <button class="capsule-type-tab active" data-type="personal" onclick="switchCapsuleType('personal')"><span class="tab-icon">👤</span> Личная</button>
                 <button class="capsule-type-tab" data-type="group" onclick="switchCapsuleType('group')"><span class="tab-icon">👥</span> Групповая</button>
@@ -254,6 +278,11 @@
                 <div class="star-input-wrap"><span style="font-size:14px;color:var(--text-dim)">Цель сбора:</span><input type="number" id="goal-stars" value="500" min="10" max="99999" step="10"><span class="star-label">⭐</span></div>
             </div>
             <div class="input-group hidden" id="geo-section-create">
+                <div class="geo-search-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="geo-search-input" placeholder="Поиск места (кафе, адрес...)" oninput="searchGeoPlace()" autocomplete="off">
+                    <div class="geo-search-results" id="geo-search-results"></div>
+                </div>
                 <button class="geo-fetch-btn" id="geo-fetch-btn" onclick="fetchLocation()">📍 Определить местоположение</button>
                 <div class="geo-coords"><input type="text" id="geo-lat" placeholder="Широта" readonly><input type="text" id="geo-lng" placeholder="Долгота" readonly></div>
                 <div class="settings-card" style="margin-bottom:0"><div class="card-row"><label>Радиус (метров)</label><input type="number" id="geo-radius" value="50" min="5" max="5000" step="5"></div></div>
@@ -294,7 +323,7 @@
             </div>
             <div class="geo-view-card hidden" id="geo-view-card">
                 <div class="card-title">📍 Гео-капсула <span style="font-weight:400;font-size:11px">— доберись до места</span></div>
-                <div class="compass-ring"><div class="compass-needle" id="compass-needle"></div><div class="compass-dot"></div></div>
+                <div class="geo-map-wrap" id="geo-map-wrap"><div id="geo-map" style="height:220px"></div></div>
                 <div class="distance-display" id="geo-distance">---</div>
                 <div class="distance-label">метров до цели</div>
                 <div class="distance-sub"><span class="geo-status-dot" id="geo-status-dot"></span><span id="geo-status-text">Ожидание геопозиции...</span></div>
@@ -329,6 +358,7 @@
         let currentCapsuleId = null;
         let currentMediaType = 'text';
         let currentCapsuleType = 'personal';
+        let currentModelType = 'safe';
         let selectedHours = 24;
         let photoBase64 = null;
         let voiceBase64 = null;
@@ -339,9 +369,26 @@
         let timerInterval;
         let geoWatchId = null;
         let lastGeoPos = null;
+        let geoMap = null;
+        let geoMarker = null;
+        let userMarker = null;
+        let geoSearchTimeout = null;
         let capsuleData = null;
         if (startParam) {currentCapsuleId = startParam;document.getElementById('view-view').classList.remove('hidden');loadCapsule(currentCapsuleId)}
         else {document.getElementById('create-view').classList.remove('hidden')}
+        function switchModel(model) {
+            currentModelType = model;
+            document.querySelectorAll('.model-option').forEach(m => m.classList.remove('active'));
+            document.querySelector(`.model-option[data-model="${model}"]`).classList.add('active');
+        }
+        function getModelPaths(modelType) {
+            const models = {
+                'safe': { closed: '/safe.glb', open: '/safe-open.glb' },
+                'love': { closed: '/love_box.glb', open: '/love_box.glb' },
+                'scifi': { closed: '/sci-fi_box.glb', open: '/sci-fi_box.glb' }
+            };
+            return models[modelType] || models['safe'];
+        }
         function switchCapsuleType(type) {
             currentCapsuleType = type;
             document.querySelectorAll('.capsule-type-tab').forEach(t => t.classList.remove('active'));
@@ -439,7 +486,7 @@
             const btn = document.getElementById('geo-fetch-btn');
             btn.classList.add('fetching');btn.textContent='📍 Определяем...';
             if(!navigator.geolocation){btn.classList.remove('fetching');btn.textContent='📍 Определить местоположение';return tg.showAlert('Геолокация не поддерживается')}
-            navigator.geolocation.getCurrentPosition(pos=>{document.getElementById('geo-lat').value=pos.coords.latitude.toFixed(6);document.getElementById('geo-lng').value=pos.coords.longitude.toFixed(6);btn.classList.remove('fetching');btn.textContent='✅ Готово';tg.HapticFeedback.notificationOccurred('success')},err=>{btn.classList.remove('fetching');btn.textContent='📍 Определить местоположение';tg.showAlert('Не удалось. Разреши доступ в настройках.')},{enableHighAccuracy:true,timeout:10000});
+            navigator.geolocation.getCurrentPosition(pos=>{document.getElementById('geo-lat').value=pos.coords.latitude.toFixed(6);document.getElementById('geo-lng').value=pos.coords.longitude.toFixed(6);document.getElementById('geo-search-input').value='';btn.classList.remove('fetching');btn.textContent='✅ Готово (ваше местоположение)';tg.HapticFeedback.notificationOccurred('success')},err=>{btn.classList.remove('fetching');btn.textContent='📍 Определить местоположение';tg.showAlert('Не удалось. Разреши доступ в настройках.')},{enableHighAccuracy:true,timeout:10000});
         }
         function toggleHackPrice() {
             const allow = document.getElementById('allow-hack').checked;
@@ -463,7 +510,7 @@
             const btn = document.getElementById('create-btn');
             btn.disabled=true;const origText=btn.textContent;btn.innerHTML='<span style="opacity:0.7">Создаём...</span>';
             try{
-                const body={sender_id:senderId,content,hours:currentCapsuleType==='geo'?876000:selectedHours,passcode:passcode||'',media_type:currentMediaType,allow_hack:allowHack,allow_hack_set:true,hack_price:hackPrice,capsule_type:currentCapsuleType,goal_stars:goalStars,geo_lat:geoLat,geo_lng:geoLng,geo_radius:geoRadius};
+                const body={sender_id:senderId,content,hours:currentCapsuleType==='geo'?876000:selectedHours,passcode:passcode||'',media_type:currentMediaType,allow_hack:allowHack,allow_hack_set:true,hack_price:hackPrice,capsule_type:currentCapsuleType,goal_stars:goalStars,geo_lat:geoLat,geo_lng:geoLng,geo_radius:geoRadius,model_type:currentModelType};
                 const hdrs={'Content-Type':'application/json'};if(tg.initData)hdrs['X-Telegram-Init-Data']=tg.initData;
                 const res=await fetch('/api/create',{method:'POST',headers:hdrs,body:JSON.stringify(body)});
                 const data=await res.json();
@@ -484,7 +531,8 @@ async function loadCapsule(id) {
                 const overlay=document.getElementById('loading-overlay');
                 safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
                 const isOpen=data.is_hacked||(data.capsule_type!=='geo'&&new Date()>=new Date(data.unlock_at));
-                overlay.classList.remove('hidden');safeModel.setAttribute('src',isOpen?'/safe-open.glb':'/safe.glb');
+                const modelPaths=getModelPaths(data.model_type||'safe');
+                overlay.classList.remove('hidden');safeModel.setAttribute('src',isOpen?modelPaths.open:modelPaths.closed);
                 updateReactions(data.reactions||{});
                 const badge=document.getElementById('type-badge');badge.classList.add('hidden');
                 if(data.capsule_type==='group'){badge.textContent='👥 Группа';badge.className='capsule-type-badge group';badge.classList.remove('hidden')}
@@ -501,7 +549,7 @@ async function loadCapsule(id) {
                 else if(data.capsule_type==='geo'){timerCard.classList.add('hidden');geoCard.classList.remove('hidden');startGeoWatch(data)}
                 else{timerCard.classList.remove('hidden');document.getElementById('timer-label-text').textContent='Сейф откроется через';document.getElementById('timer-status-text').textContent='ЗАКРЫТ';if(data.allow_hack!==false){hackBtn.classList.remove('hidden');hackBtn.querySelector('.star-icon').nextSibling.textContent=` Взломать досрочно (${data.hack_price||50} Stars)`}}
                 if(data.preview&&data.media_type==='photo'){const c=document.getElementById('model-container');let b=document.getElementById('blur-preview');if(!b){b=document.createElement('div');b.id='blur-preview';b.style.cssText='position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;pointer-events:none';c.appendChild(b)}b.innerHTML=buildBlurredPhoto(data.content);b.classList.remove('hidden')}
-                if(data.capsule_type==='personal'&&!isOpen){const updateTimer=()=>{const n=new Date();const u=new Date(data.unlock_at);const d=u-n;if(d<=0||data.is_hacked){clearInterval(timerInterval);overlay.classList.remove('hidden');safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});safeModel.setAttribute('src','/safe-open.glb');document.getElementById('status-container').classList.add('hidden');document.getElementById('passcode-section').classList.add('hidden');document.getElementById('reveal-section').classList.remove('hidden');tg.HapticFeedback.notificationOccurred('success')}else{const h=Math.floor(d/(36e5));const m=Math.floor((d%36e5)/6e4);const s=Math.floor((d%6e4)/1e3);document.getElementById('timer').innerText=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`}};updateTimer();timerInterval=setInterval(updateTimer,1000)}
+                if(data.capsule_type==='personal'&&!isOpen){const updateTimer=()=>{const n=new Date();const u=new Date(data.unlock_at);const d=u-n;if(d<=0||data.is_hacked){clearInterval(timerInterval);overlay.classList.remove('hidden');safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});const mp=getModelPaths(data.model_type||'safe');safeModel.setAttribute('src',mp.open);document.getElementById('status-container').classList.add('hidden');document.getElementById('passcode-section').classList.add('hidden');document.getElementById('reveal-section').classList.remove('hidden');tg.HapticFeedback.notificationOccurred('success')}else{const h=Math.floor(d/(36e5));const m=Math.floor((d%36e5)/6e4);const s=Math.floor((d%6e4)/1e3);document.getElementById('timer').innerText=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`}};updateTimer();timerInterval=setInterval(updateTimer,1000)}
             }catch(e){tg.showAlert("Ошибка загрузки.")}
         }
         function renderGroupProgress(data) {
@@ -524,19 +572,46 @@ async function loadCapsule(id) {
         function startGeoWatch(data) {
             if(!navigator.geolocation){document.getElementById('geo-status-text').textContent='Геолокация не поддерживается';return}
             document.getElementById('geo-status-text').textContent='Поиск позиции...';
-            const check=(pos)=>{lastGeoPos=pos;
+            // Init or reset Leaflet map
+            if(geoMap){
+                // Reset map for new capsule: remove old markers, update center
+                if(geoMarker) geoMap.removeLayer(geoMarker);
+                if(userMarker) geoMap.removeLayer(userMarker);
+                userMarker=null;
+                geoMap.setView([data.geo_lat,data.geo_lng],15);
+                // Remove old circles (layers that aren't tile or marker)
+                geoMap.eachLayer(l=>{if(l instanceof L.Circle) geoMap.removeLayer(l)});
+            } else {
+                geoMap=L.map('geo-map',{zoomControl:true,attributionControl:false}).setView([data.geo_lat,data.geo_lng],15);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(geoMap);
+            }
+            // Target marker
+            const targetIcon=L.divIcon({html:'<div style="width:24px;height:24px;border-radius:50%;background:rgba(16,185,129,0.3);border:3px solid #10b981;box-shadow:0 0 16px rgba(16,185,129,0.5);display:flex;align-items:center;justify-content:center;font-size:14px">📍</div>',className:'',iconSize:[24,24],iconAnchor:[12,12]});
+            geoMarker=L.marker([data.geo_lat,data.geo_lng],{icon:targetIcon}).addTo(geoMap);
+            geoMarker.bindPopup('<b>🎯 Цель</b><br>Радиус: '+(data.geo_radius||50)+'м').openPopup();
+            // Radius circle
+            L.circle([data.geo_lat,data.geo_lng],{radius:data.geo_radius||50,color:'#10b981',fillColor:'#10b981',fillOpacity:0.1,weight:1,dashArray:'6,8'}).addTo(geoMap);
+            // Fix map size after becoming visible
+            setTimeout(()=>{if(geoMap) geoMap.invalidateSize()},100);
+            const check=(pos)=>{
+                lastGeoPos=pos;
                 const lat=pos.coords.latitude,lng=pos.coords.longitude;
+                // Update user marker on map
+                if(geoMap){
+                    if(!userMarker){const userIcon=L.divIcon({html:'<div style="width:16px;height:16px;border-radius:50%;background:#22d3ee;border:3px solid #fff;box-shadow:0 0 12px rgba(34,211,238,0.8)"></div>',className:'',iconSize:[16,16],iconAnchor:[8,8]});userMarker=L.marker([lat,lng],{icon:userIcon}).addTo(geoMap)}
+                    else userMarker.setLatLng([lat,lng]);
+                    geoMap.setView([lat,lng],geoMap.getZoom());
+                }
+                // Haversine distance
                 const R=6371000;
                 const dLat=(data.geo_lat-lat)*Math.PI/180,dLng=(data.geo_lng-lng)*Math.PI/180;
                 const a=Math.sin(dLat/2)**2+Math.cos(lat*Math.PI/180)*Math.cos(data.geo_lat*Math.PI/180)*Math.sin(dLng/2)**2;
                 const dist=Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
                 document.getElementById('geo-distance').textContent=dist;
                 const dot=document.getElementById('geo-status-dot'),st=document.getElementById('geo-status-text'),ub=document.getElementById('geo-unlock-btn');
-                const bearing=Math.atan2(dLng,dLat)*180/Math.PI;
-                document.getElementById('compass-needle').style.transform=`rotate(${bearing}deg)`;
                 if(dist<=(data.geo_radius||50)){dot.className='geo-status-dot unlocked';st.textContent='Ты на месте!';ub.classList.remove('hidden')}
-                else if(dist<200){dot.className='geo-status-dot near';st.textContent=`Совсем рядом!`;ub.classList.add('hidden')}
-                else{dot.className='geo-status-dot';st.textContent=`До цели ${dist}м`;ub.classList.add('hidden')}
+                else if(dist<200){dot.className='geo-status-dot near';st.textContent='Совсем рядом!';ub.classList.add('hidden')}
+                else{dot.className='geo-status-dot';st.textContent='До цели '+dist+'м';ub.classList.add('hidden')}
             };
             navigator.geolocation.getCurrentPosition(check,()=>{document.getElementById('geo-status-text').textContent='Ошибка позиции'},{enableHighAccuracy:true});
             geoWatchId=navigator.geolocation.watchPosition(check,null,{enableHighAccuracy:true,maximumAge:5000});
@@ -710,6 +785,38 @@ async function loadCapsule(id) {
                 }
             } catch(e) {tg.showAlert("Ошибка инвойса.")}
         }
+        // Geo search (Nominatim API)
+        async function searchGeoPlace() {
+            const q = document.getElementById('geo-search-input').value.trim();
+            const resultsEl = document.getElementById('geo-search-results');
+            if (geoSearchTimeout) clearTimeout(geoSearchTimeout);
+            if (q.length < 2) { resultsEl.style.display = 'none'; return; }
+            geoSearchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&accept-language=ru`,{headers:{'User-Agent':'CapsuleBot/1.0'}});
+                    const places = await res.json();
+                    if (!places.length) { resultsEl.style.display = 'none'; return; }
+                    resultsEl.innerHTML = places.map(p =>
+                        `<div class="geo-result-item" onclick="selectGeoPlace(${p.lat},${p.lon},'${p.display_name.replace(/'/g,"\\'")}')">📍 ${p.display_name}</div>`
+                    ).join('');
+                    resultsEl.style.display = 'block';
+                } catch(e) { resultsEl.style.display = 'none'; }
+            }, 400);
+        }
+        function selectGeoPlace(lat, lng, name) {
+            document.getElementById('geo-lat').value = lat.toFixed(6);
+            document.getElementById('geo-lng').value = lng.toFixed(6);
+            document.getElementById('geo-search-input').value = name;
+            document.getElementById('geo-search-results').style.display = 'none';
+            document.getElementById('geo-fetch-btn').textContent = '✅ Выбрано: ' + name.substring(0, 30) + (name.length > 30 ? '...' : '');
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+        // Close geo search on outside click
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#geo-search-input') && !e.target.closest('#geo-search-results')) {
+                document.getElementById('geo-search-results').style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>

@@ -90,6 +90,8 @@ func main() {
 	fs := http.FileServer(http.Dir("."))
 	http.Handle("/safe.glb", fs)
 	http.Handle("/safe-open.glb", fs)
+	http.Handle("/love_box.glb", fs)
+	http.Handle("/sci-fi_box.glb", fs)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)

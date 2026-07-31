@@ -40,4 +40,5 @@ type Capsule struct {
 	GeoLat             float64          `json:"geo_lat" bson:"geo_lat"`
 	GeoLng             float64          `json:"geo_lng" bson:"geo_lng"`
 	GeoRadius          int              `json:"geo_radius" bson:"geo_radius"`               // метров
+	ModelType          string           `json:"model_type" bson:"model_type"`               // "safe", "love", "scifi"
 }

@@ -13,7 +13,11 @@
       "use": "@vercel/static"
     },
     {
-      "src": "safe-open.glb",
+      "src": "sci-fi_box.glb",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "love_box.glb",
       "use": "@vercel/static"
     }
   ],
@@ -29,6 +33,14 @@
     {
       "src": "/safe-open.glb",
       "dest": "/safe-open.glb"
+    },
+    {
+      "src": "/love_box.glb",
+      "dest": "/love_box.glb"
+    },
+    {
+      "src": "/sci-fi_box.glb",
+      "dest": "/sci-fi_box.glb"
     },
     {
       "src": "/(.*)",
