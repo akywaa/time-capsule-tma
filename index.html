@@ -275,6 +275,9 @@
             <div class="create-step active" id="step-1">
                 <h2 style="margin:0 0 16px;">Внешний вид</h2>
                 <p class="subtitle">Выбери, как будет выглядеть капсула</p>
+                <div class="model-preview-wrap" style="height:220px;margin-bottom:16px;border-radius:16px;overflow:hidden;background:rgba(255,255,255,0.03);position:relative;animation:float 4s ease-in-out infinite">
+                    <model-viewer id="model-preview" src="/safe.glb" auto-rotate camera-controls disable-zoom shadow-intensity="1" interaction-prompt="none" environment-image="neutral" exposure="0.9" style="width:100%;height:100%;"></model-viewer>
+                </div>
                 <div class="model-selector" id="model-selector">
                 <button class="model-option active" data-model="safe" onclick="switchModel('safe')"><span class="model-icon">🔒</span> Сейф</button>
                 <button class="model-option" data-model="love" onclick="switchModel('love')"><span class="model-icon">❤️</span> Бокс любви</button>
@@ -358,6 +361,7 @@
                 <button class="btn btn-secondary" onclick="prevStep(3)">← Назад</button>
                 <button class="btn btn-primary" onclick="createCapsule()" id="create-btn">Спрятать секрет 🔒</button>
             </div>
+        </div>
         </div>
         <div id="view-view" class="hidden">
             <div class="model-container" id="model-container">
@@ -498,6 +502,9 @@
             currentModelType = model;
             document.querySelectorAll('.model-option').forEach(m => m.classList.remove('active'));
             document.querySelector(`.model-option[data-model="${model}"]`).classList.add('active');
+            const mp = getModelPaths(model);
+            const preview = document.getElementById('model-preview');
+            if (preview) preview.setAttribute('src', mp.closed);
         }
         function getModelPaths(modelType) {
             const models = {
