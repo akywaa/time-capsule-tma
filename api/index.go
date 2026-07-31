@@ -85,15 +85,15 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 	switch {
 	case strings.HasPrefix(r.URL.Path, "/api/create"):
-		capsule.MakeCreateHandler(store)(w, r)
+		capsule.RequireTWA(bot.Token, capsule.MakeCreateHandler(store))(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/get"):
 		capsule.MakeGetHandler(store)(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/invoice"):
-		capsule.MakeInvoiceHandler(bot)(w, r)
+		capsule.RequireTWA(bot.Token, capsule.MakeInvoiceHandler(store, bot))(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/reaction"):
-		capsule.MakeReactionHandler(store)(w, r)
+		capsule.RequireTWA(bot.Token, capsule.MakeReactionHandler(store))(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/passcode"):
-		capsule.MakePasscodeHandler(store)(w, r)
+		capsule.RequireTWA(bot.Token, capsule.MakePasscodeHandler(store))(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/cron/reminders"):
 		capsule.MakeReminderHandler(store, bot)(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/webhook"):

@@ -97,11 +97,11 @@ func main() {
 		}
 		http.ServeFile(w, r, "index.html")
 	})
-	http.HandleFunc("/api/create", capsule.MakeCreateHandler(store))
+	http.HandleFunc("/api/create", capsule.RequireTWA(token, capsule.MakeCreateHandler(store)))
 	http.HandleFunc("/api/get", capsule.MakeGetHandler(store))
-	http.HandleFunc("/api/invoice", capsule.MakeInvoiceHandler(bot))
-	http.HandleFunc("/api/reaction", capsule.MakeReactionHandler(store))
-	http.HandleFunc("/api/passcode", capsule.MakePasscodeHandler(store))
+	http.HandleFunc("/api/invoice", capsule.RequireTWA(token, capsule.MakeInvoiceHandler(store, bot)))
+	http.HandleFunc("/api/reaction", capsule.RequireTWA(token, capsule.MakeReactionHandler(store)))
+	http.HandleFunc("/api/passcode", capsule.RequireTWA(token, capsule.MakePasscodeHandler(store)))
 	http.HandleFunc("/api/cron/reminders", capsule.MakeReminderHandler(store, bot))
 
 	log.Println("Web-сервер запущен на порту :8080")

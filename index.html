@@ -84,6 +84,19 @@
         @keyframes unlockBounce{0%{transform:scale(0) rotate(-20deg);opacity:0}60%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
         .secret-content{white-space:pre-wrap;line-height:1.7;margin:0;color:#d4d4d8;font-size:15px}
         .secret-photo{max-width:100%;border-radius:12px;margin-top:8px}
+        .secret-photo.blurred{filter:blur(50px);transform:scale(1.08);pointer-events:none;user-select:none}
+        .blur-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;z-index:2;white-space:nowrap;pointer-events:none}
+        .photo-blur-wrapper{position:relative;display:inline-block;max-width:100%}
+        .price-row{display:flex;gap:8px;align-items:center}
+        .price-row input[type="number"]{flex:1}
+        .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.025);margin-bottom:12px}
+        .toggle-row span{font-size:14px;color:var(--text-dim)}
+        .toggle-switch{position:relative;width:44px;height:26px;flex-shrink:0}
+        .toggle-switch input{display:none}
+        .toggle-slider{position:absolute;inset:0;background:rgba(255,255,255,0.1);border-radius:26px;cursor:pointer;transition:all 0.3s}
+        .toggle-slider::before{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:all 0.3s}
+        .toggle-switch input:checked+.toggle-slider{background:var(--accent)}
+        .toggle-switch input:checked+.toggle-slider::before{transform:translateX(18px)}
         .secret-audio{width:100%;margin-top:8px;border-radius:12px}
         @keyframes fadeSlideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         .type-tabs{display:flex;gap:8px;margin-bottom:12px}
@@ -168,6 +181,8 @@
             </div>
             <div class="input-group"><select id="time-input"><option value="1">🔒 Запереть на 1 час</option><option value="24">🔒 Запереть на 24 часа</option><option value="168">🔒 Запереть на 1 неделю</option></select></div>
             <div class="input-group"><input type="text" id="passcode-input" maxlength="4" placeholder="🔢 Код-пароль (4 цифры, опционально)" inputmode="numeric" pattern="[0-9]*"></div>
+            <div class="toggle-row"><span>Разрешить взлом за Stars ⭐</span><label class="toggle-switch"><input type="checkbox" id="allow-hack" checked onchange="toggleHackPrice()"><div class="toggle-slider"></div></label></div>
+            <div class="input-group" id="group-price"><div class="price-row"><span style="color:var(--text-dim);font-size:14px;white-space:nowrap">Цена:</span><input type="number" id="hack-price" value="50" min="1" max="999999" placeholder="50"><span style="color:var(--text-dim);font-size:14px;white-space:nowrap">⭐</span></div></div>
             <button class="btn btn-primary" onclick="createCapsule()" id="create-btn">Спрятать в сейф</button>
         </div>
         <div id="view-view" class="hidden">
@@ -287,10 +302,16 @@
                 tg.showAlert('Нет доступа к микрофону. Разреши запись в настройках.');
             }
         }
+        function toggleHackPrice() {
+            const allow = document.getElementById('allow-hack').checked;
+            document.getElementById('group-price').classList.toggle('hidden', !allow);
+        }
         async function createCapsule() {
             const hours = document.getElementById('time-input').value;
             const senderId = tg.initDataUnsafe?.user?.id;
             const passcode = document.getElementById('passcode-input').value.replace(/\D/g, '');
+            const allowHack = document.getElementById('allow-hack').checked;
+            const hackPrice = parseInt(document.getElementById('hack-price').value) || 50;
             let content = '';
             if (currentMediaType === 'text') {
                 content = document.getElementById('text-input').value.trim();
@@ -306,7 +327,10 @@
             btn.disabled = true;btn.innerHTML = '<span style="opacity:0.7">Прячем...</span>';
             try {
                 const reqSenderId = senderId || 123456789;
-                const res = await fetch('/api/create', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sender_id:reqSenderId,content:content,hours:parseInt(hours),passcode:passcode||'',media_type:currentMediaType})});
+                const body = {sender_id:reqSenderId,content:content,hours:parseInt(hours),passcode:passcode||'',media_type:currentMediaType,allow_hack:allowHack,allow_hack_set:true,hack_price:hackPrice};
+                const headers = {'Content-Type':'application/json'};
+                if (tg.initData) headers['X-Telegram-Init-Data'] = tg.initData;
+                const res = await fetch('/api/create', {method:'POST',headers:headers,body:JSON.stringify(body)});
                 const data = await res.json();
                 const shareUrl = `https://t.me/${BOT_USERNAME}/app?startapp=${data.id}`;
                 tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent("Я спрятал для тебя капсулу времени! Открой, если сможешь дождаться.")}`);
@@ -315,6 +339,8 @@
         let capsuleData = null;
         async function loadCapsule(id) {
             try {
+                const oldBlur = document.getElementById('blur-preview');
+                if (oldBlur) oldBlur.remove();
                 const viewerId = tg.initDataUnsafe?.user?.id;
                 const res = await fetch(`/api/get?id=${id}${viewerId ? '&viewer_id=' + viewerId : ''}`);
                 if (!res.ok) return tg.showAlert("Капсула не найдена.");
@@ -338,6 +364,26 @@
                         document.getElementById('passcode-attempts-text').classList.add('warn');
                     }
                 } else { passcodeSection.classList.add('hidden'); }
+                // Показываем размытое превью если фото залочено
+                if (data.preview && data.media_type === 'photo') {
+                    const container = document.getElementById('model-container');
+                    let blurEl = document.getElementById('blur-preview');
+                    if (!blurEl) {
+                        blurEl = document.createElement('div');
+                        blurEl.id = 'blur-preview';
+                        blurEl.style.cssText = 'position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;pointer-events:none';
+                        container.appendChild(blurEl);
+                    }
+                    blurEl.innerHTML = buildBlurredPhoto(data.content);
+                    blurEl.classList.remove('hidden');
+                }
+                // Обновляем кнопку взлома с динамической ценой
+                const hackBtn = document.getElementById('hack-btn');
+                if (data.allow_hack === false) {
+                    hackBtn.classList.add('hidden');
+                } else {
+                    hackBtn.querySelector('.star-icon').nextSibling.textContent = ` Взломать досрочно (${data.hack_price || 50} Stars)`;
+                }
                 const updateTimer = () => {
                     const now = new Date();
                     const unlockAt = new Date(data.unlock_at);
@@ -453,6 +499,9 @@
                 return `<div class="secret-content">${escapeHtml(data.content)}</div>`;
             }
         }
+        function buildBlurredPhoto(src) {
+            return `<div class="photo-blur-wrapper"><img src="${src}" class="secret-photo blurred" alt="Размытое фото"><div class="blur-badge">👁 Размыто до открытия</div></div>`;
+        }
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
@@ -472,13 +521,18 @@
                 if (el2) el2.textContent = val;
             });
         }
+        const apiHeaders = () => {
+            const h = {'Content-Type':'application/json'};
+            if (tg.initData) h['X-Telegram-Init-Data'] = tg.initData;
+            return h;
+        };
         async function sendReaction(emoji) {
             if (!currentCapsuleId) return;
             const userId = tg.initDataUnsafe?.user?.id;
             if (!userId) return;
             tg.HapticFeedback.impactOccurred('light');
             try {
-                const res = await fetch('/api/reaction', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentCapsuleId,emoji:emoji,user_id:userId})});
+                const res = await fetch('/api/reaction', {method:'POST',headers:apiHeaders(),body:JSON.stringify({id:currentCapsuleId,emoji:emoji,user_id:userId})});
                 const data = await res.json();
                 updateReactions(data.reactions || {});
             } catch(e) {}
@@ -499,7 +553,7 @@
             const code = digits.join('');
             if (code.length < 4) return tg.showAlert('Введи все 4 цифры!');
             try {
-                const res = await fetch('/api/passcode', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentCapsuleId,passcode:code})});
+                const res = await fetch('/api/passcode', {method:'POST',headers:apiHeaders(),body:JSON.stringify({id:currentCapsuleId,passcode:code})});
                 const data = await res.json();
                 if (data.success) {
                     tg.HapticFeedback.notificationOccurred('success');
@@ -520,6 +574,9 @@
             } catch(e) {tg.showAlert('Ошибка.')}
         }
         async function hackCapsule() {
+            if (capsuleData && capsuleData.allow_hack === false) {
+                return tg.showAlert('Создатель запретил взлом за звёзды.');
+            }
             tg.HapticFeedback.impactOccurred('medium');
             try {
                 const res = await fetch(`/api/invoice?id=${currentCapsuleId}`);

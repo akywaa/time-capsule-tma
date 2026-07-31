@@ -9,7 +9,7 @@ type Store interface {
 	SetHacked(id string) (*Capsule, error)
 	SetViewer(id string, viewerID int64) error
 	ToggleReaction(id string, userID int64, emoji string) (*Capsule, error)
-	IncrementPasscodeAttempts(id string) (int, error)
+	AttemptPasscode(id string, passcode string) (success bool, remaining int, err error)
 	FindPendingReminders() ([]*Capsule, error)
 	MarkReminderSent(id string) error
 	CreateIndexes() error
@@ -29,4 +29,6 @@ type Capsule struct {
 	ReactionsUsers   map[int64]string `json:"-" bson:"reactions_users"`            // userId → эмодзи
 	ReminderSent     bool            `json:"-" bson:"reminder_sent"`               // отправлено ли напоминание
 	ViewerID         int64          `json:"-" bson:"viewer_id"`                   // ID получателя (первый открывший)
+	HackPrice        int            `json:"hack_price" bson:"hack_price"`           // цена взлома в Stars (0 = по умолчанию 50)
+	AllowHack        bool           `json:"allow_hack" bson:"allow_hack"`           // разрешён ли взлом за звёзды
 }

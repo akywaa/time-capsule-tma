@@ -146,19 +146,37 @@ func (s *MongoStore) SetViewer(id string, viewerID int64) error {
 	return err
 }
 
-// IncrementPasscodeAttempts уменьшает счётчик попыток на 1. Возвращает оставшееся количество.
-func (s *MongoStore) IncrementPasscodeAttempts(id string) (int, error) {
+// AttemptPasscode — атомарная проверка пасскода (без race condition)
+// Возвращает: success=true если код верный (капсула взломана), remaining попыток после операции
+func (s *MongoStore) AttemptPasscode(id string, passcode string) (bool, int, error) {
+	ctx := context.TODO()
+	// Пробуем атомарно: если passcode совпал И попытки ещё есть → взламываем
 	var c Capsule
-	err := s.col.FindOneAndUpdate(
-		context.TODO(),
-		bson.M{"_id": id},
+	err := s.col.FindOneAndUpdate(ctx,
+		bson.M{"_id": id, "passcode": passcode, "passcode_attempts": bson.M{"$gt": 0}},
+		bson.M{"$set": bson.M{"is_hacked": true}},
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&c)
+	if err == nil {
+		// Успех — код верный
+		return true, c.PasscodeAttempts, nil
+	}
+	if err != mongo.ErrNoDocuments {
+		return false, 0, err
+	}
+	// Код неверный — декрементируем попытки (если ещё остались)
+	err = s.col.FindOneAndUpdate(ctx,
+		bson.M{"_id": id, "passcode_attempts": bson.M{"$gt": 0}},
 		bson.M{"$inc": bson.M{"passcode_attempts": -1}},
 		options.FindOneAndUpdate().SetReturnDocument(options.After),
 	).Decode(&c)
 	if err != nil {
-		return 0, err
+		if err == mongo.ErrNoDocuments {
+			return false, 0, nil // попытки кончились
+		}
+		return false, 0, err
 	}
-	return c.PasscodeAttempts, nil
+	return false, c.PasscodeAttempts, nil
 }
 
 // FindPendingReminders находит капсулы, для которых пора отправить напоминание
