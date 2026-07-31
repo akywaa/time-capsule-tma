@@ -35,10 +35,21 @@
         .star-icon{font-size:18px;filter:drop-shadow(0 0 4px rgba(251,191,36,0.6));animation:starPulse 2s ease-in-out infinite}
         @keyframes starPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
         .model-container{width:100%;height:280px;margin:16px 0 20px;position:relative;border-radius:20px;overflow:hidden;animation:float 4s ease-in-out infinite}
-        .model-glow{position:absolute;inset:-4px;border-radius:24px;background:conic-gradient(from 0deg,transparent,var(--accent-glow),transparent,var(--accent-glow),transparent);opacity:0.4;animation:glowRotate 6s linear infinite;pointer-events:none;z-index:0;filter:blur(8px)}
+        .app-glow{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.15;background:conic-gradient(from 0deg,transparent,rgba(6,182,212,0.15),transparent,rgba(139,92,246,0.1),transparent);animation:glowRotate 10s linear infinite;filter:blur(60px)}
         @keyframes glowRotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-        model-viewer{width:100%;height:100%;--poster-color:transparent;outline:none;position:relative;z-index:1}
+        model-viewer{width:100%;height:100%;--poster-color:transparent;outline:none;position:relative;z-index:1;transition:filter 0.8s ease}
+        model-viewer.zooming{filter:brightness(0.3) blur(2px)}
+        .reveal-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:3;animation:fadeSlideUp 0.5s cubic-bezier(0.4,0,0.2,1);pointer-events:all}
+        .reveal-title{font-size:28px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#22c55e,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:6px;animation:titlePop 0.6s cubic-bezier(0.68,-0.55,0.27,1.55)}
+        @keyframes titlePop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+        .reveal-sub{color:var(--text-dim);font-size:14px;margin-bottom:20px;font-weight:500}
+        .reveal-btn{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;padding:14px 36px;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 0 32px rgba(34,197,94,0.3),0 4px 16px rgba(0,0,0,0.4);transition:all 0.3s;font-family:inherit;animation:revealPulse 2s ease-in-out infinite;letter-spacing:0.02em}
+        @keyframes revealPulse{0%,100%{box-shadow:0 0 32px rgba(34,197,94,0.3),0 4px 16px rgba(0,0,0,0.4)}50%{box-shadow:0 0 48px rgba(34,197,94,0.5),0 4px 24px rgba(34,197,94,0.3)}}
+        .reveal-btn:hover{transform:scale(1.04)}.reveal-btn:active{transform:scale(0.95)}
+        .dots-pulse .dots::after{content:'';animation:dots 1.2s steps(4,end) infinite}
+        @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:''}}
+        .safe-flash{position:fixed;inset:0;background:white;opacity:0;pointer-events:none;z-index:100;transition:opacity 0.15s ease}
         .loading-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;transition:opacity 0.4s ease;pointer-events:none}
         .loading-overlay.hidden{opacity:0}
         .spinner{width:48px;height:48px;border:3px solid rgba(255,255,255,0.06);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;box-shadow:0 0 20px var(--accent-glow)}
@@ -95,6 +106,8 @@
 </head>
 <body>
     <div class="bg-dots"></div>
+    <div class="app-glow"></div>
+    <div class="safe-flash" id="safe-flash"></div>
     <div class="content-wrap">
         <div id="create-view" class="hidden">
             <div class="brand">Капсула времени</div>
@@ -125,9 +138,13 @@
         </div>
         <div id="view-view" class="hidden">
             <div class="model-container" id="model-container">
-                <div class="model-glow"></div>
                 <model-viewer id="safe-model" auto-rotate camera-controls disable-zoom shadow-intensity="1" interaction-prompt="none"></model-viewer>
                 <div class="loading-overlay" id="loading-overlay"><div class="spinner"></div><div class="loading-text">Загрузка сейфа</div></div>
+                <div class="reveal-overlay hidden" id="reveal-overlay">
+                    <div class="reveal-title">Время вышло! 🔓</div>
+                    <div class="reveal-sub">Сейф готов открыть свою тайну</div>
+                    <button class="reveal-btn" onclick="revealSecret()">Раскрыть секрет</button>
+                </div>
             </div>
             <div id="status-container">
                 <div class="timer-wrapper">
@@ -262,19 +279,22 @@
                 tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent("Я спрятал для тебя капсулу времени! Открой, если сможешь дождаться.")}`);
             } catch(e) {tg.showAlert("Ошибка сервера.");btn.disabled = false;btn.innerHTML = 'Спрятать в сейф'}
         }
+        let capsuleData = null;
         async function loadCapsule(id) {
             try {
                 const viewerId = tg.initDataUnsafe?.user?.id;
-            const res = await fetch(`/api/get?id=${id}${viewerId ? '&viewer_id=' + viewerId : ''}`);
+                const res = await fetch(`/api/get?id=${id}${viewerId ? '&viewer_id=' + viewerId : ''}`);
                 if (!res.ok) return tg.showAlert("Капсула не найдена.");
                 const data = await res.json();
+                capsuleData = data;
                 clearInterval(timerInterval);
                 const safeModel = document.getElementById('safe-model');
                 const overlay = document.getElementById('loading-overlay');
                 safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
                 const isOpen = data.is_hacked || new Date() >= new Date(data.unlock_at);
                 overlay.classList.remove('hidden');
-                safeModel.setAttribute('src', isOpen ? '/safe.glb' : '/safe-closed.glb');
+                // Всегда закрытый сейф
+                safeModel.setAttribute('src','/safe-closed.glb');
                 updateReactions(data.reactions || {});
                 const passcodeSection = document.getElementById('passcode-section');
                 if (data.has_passcode && !isOpen) {
@@ -292,23 +312,16 @@
                     const diff = unlockAt - now;
                     if (diff <= 0) {
                         clearInterval(timerInterval);
-                        safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
-                        overlay.classList.remove('hidden');
-                        safeModel.setAttribute('src','/safe-closed.glb');
                         document.getElementById('status-container').classList.add('hidden');
                         document.getElementById('passcode-section').classList.add('hidden');
-                        document.getElementById('content-box').classList.remove('hidden');
-                        showContent(data);
+                        document.getElementById('reveal-overlay').classList.remove('hidden');
                         tg.HapticFeedback.notificationOccurred('success');
-                        fireConfetti();
                     } else if (data.is_hacked) {
                         clearInterval(timerInterval);
                         document.getElementById('status-container').classList.add('hidden');
                         document.getElementById('passcode-section').classList.add('hidden');
-                        document.getElementById('content-box').classList.remove('hidden');
-                        showContent(data);
+                        document.getElementById('reveal-overlay').classList.remove('hidden');
                         tg.HapticFeedback.notificationOccurred('success');
-                        fireConfetti();
                     } else {
                         document.getElementById('hack-btn').classList.remove('hidden');
                         const h = Math.floor(diff/(1000*60*60));
@@ -321,13 +334,49 @@
                 if (isOpen) {
                     document.getElementById('status-container').classList.add('hidden');
                     document.getElementById('passcode-section').classList.add('hidden');
-                    document.getElementById('content-box').classList.remove('hidden');
-                    showContent(data);
+                    document.getElementById('reveal-overlay').classList.remove('hidden');
                     fireConfetti();
                 }
                 timerInterval = setInterval(updateTimer,1000);
             } catch(e) {tg.showAlert("Ошибка загрузки.")}
         }
+        async function revealSecret() {
+            const model = document.getElementById('safe-model');
+            const overlay = document.getElementById('reveal-overlay');
+            const flash = document.getElementById('safe-flash');
+            const data = capsuleData;
+            if (!data) return;
+            // Убираем кнопку
+            overlay.innerHTML = '<div class="reveal-title dots-pulse">Открываем<span class="dots"></span></div>';
+            tg.HapticFeedback.impactOccurred('heavy');
+            // Останавливаем авто-вращение и зумим камеру
+            model.removeAttribute('auto-rotate');
+            model.classList.add('zooming');
+            // Анимация: камера влетает в сейф
+            model.cameraOrbit = '0deg 60deg 3m';
+            await sleep(200);
+            model.fieldOfView = '30deg';
+            model.cameraOrbit = '0deg 80deg 1.5m';
+            await sleep(400);
+            model.fieldOfView = '12deg';
+            model.cameraOrbit = '10deg 85deg 0.6m';
+            await sleep(500);
+            // Вспышка
+            flash.style.opacity = '1';
+            await sleep(150);
+            flash.style.opacity = '0';
+            await sleep(100);
+            // Сброс камеры и показ контента
+            model.classList.remove('zooming');
+            model.fieldOfView = '45deg';
+            model.cameraOrbit = '45deg 75deg 4m';
+            model.setAttribute('auto-rotate', '');
+            overlay.classList.add('hidden');
+            document.getElementById('content-box').classList.remove('hidden');
+            showContent(data);
+            fireConfetti();
+        }
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
         function showContent(data) {
             const container = document.getElementById('secret-content');
             if (data.media_type === 'photo') {
