@@ -270,3 +270,22 @@ func haversine(lat1, lng1, lat2, lng2 float64) float64 {
 	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(lat1*math.Pi/180)*math.Cos(lat2*math.Pi/180)*math.Sin(dLng/2)*math.Sin(dLng/2)
 	return R * 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 }
+
+// FindBySenderID возвращает все капсулы пользователя (без секретного контента)
+func (s *MongoStore) FindBySenderID(userID int64) ([]*Capsule, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	projection := bson.M{"content": 0, "passcode": 0, "reactions_users": 0}
+	cursor, err := s.col.Find(ctx, bson.M{"sender_id": userID}, options.Find().SetProjection(projection).SetSort(bson.M{"unlock_at": -1}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var capsules []*Capsule
+	if err := cursor.All(ctx, &capsules); err != nil {
+		return nil, err
+	}
+	return capsules, nil
+}

@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -377,6 +378,29 @@ func MakeGeoCheckHandler(store Store) http.HandlerFunc {
 			"unlocked": unlocked,
 			"distance": dist,
 		})
+	}
+}
+
+// MakeMyCapsulesHandler — GET /api/my (возвращает капсулы текущего пользователя)
+func MakeMyCapsulesHandler(store Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		initData := r.Header.Get("X-Telegram-Init-Data")
+		data, ok := ValidateTWA(initData, os.Getenv("BOT_TOKEN"))
+		if !ok {
+			http.Error(w, `{"error":"unauthorized"}`, 403)
+			return
+		}
+		userID := parseUserFromTWA(data)
+		if userID == 0 {
+			http.Error(w, `{"error":"no user id"}`, 400)
+			return
+		}
+		capsules, err := store.FindBySenderID(userID)
+		if err != nil {
+			http.Error(w, `[]`, 200)
+			return
+		}
+		json.NewEncoder(w).Encode(capsules)
 	}
 }
 

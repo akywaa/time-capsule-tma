@@ -210,6 +210,20 @@
         .file-upload input{display:none}
         .file-upload-label{display:block;padding:14px 16px;border-radius:14px;border:2px dashed var(--border);background:rgba(255,255,255,0.015);color:var(--text-dim);font-size:14px;cursor:pointer;transition:all 0.3s;text-align:center}
         .file-upload-label:hover{border-color:var(--accent);color:var(--text);background:rgba(6,182,212,0.03)}
+        /* --- Wizard Steps --- */
+        .home-view{display:flex;flex-direction:column;gap:16px;animation:stepIn 0.4s cubic-bezier(0.22,0.9,0.32,1)}
+        .create-step{display:none;flex-direction:column;animation:stepIn 0.4s cubic-bezier(0.22,0.9,0.32,1)}
+        .create-step.active{display:flex}
+        @keyframes stepIn{from{opacity:0;transform:translateY(20px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+        .step-dots{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
+        .step-dot{width:8px;height:8px;border-radius:4px;background:rgba(255,255,255,0.15);transition:all 0.3s ease}
+        .step-dot.active{background:var(--accent);width:24px;box-shadow:0 0 10px var(--accent-glow)}
+        .step-nav{display:flex;gap:10px;margin-top:16px}
+        .step-nav .btn{flex:1;margin-top:0}
+        .btn-secondary{background:rgba(255,255,255,0.05);color:var(--text);border:1px solid var(--border)}
+        .btn-secondary:hover{background:rgba(255,255,255,0.1)}
+        .home-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 24px -8px rgba(0,0,0,0.5)}
+        .home-card i{font-size:32px;color:var(--accent);margin-bottom:12px;display:block;font-style:normal}
         @media(max-width:380px){.brand{font-size:26px}.timer{font-size:36px}.model-container{height:240px}.passcode-digit{width:42px;height:50px;font-size:20px}}
     </style>
 </head>
@@ -238,19 +252,42 @@
         </div>
     </div>
     <div class="content-wrap">
-        <div id="create-view" class="hidden">
+        <!-- ГЛАВНЫЙ ЭКРАН -->
+        <div id="home-view" class="hidden">
             <div class="brand">Капсула времени</div>
-            <p class="subtitle">Спрячь секрет — по таймеру, общими усилиями или в нужном месте</p>
-            <div class="model-selector" id="model-selector">
+            <p class="subtitle">Сохрани момент в будущем или спрячь его на карте</p>
+            <div class="home-card">
+                <i>⏳</i>
+                <h3 style="margin:0 0 8px;font-weight:800;">Твои секреты</h3>
+                <p style="font-size:13px;color:var(--text-dim);margin:0;" id="my-capsules-text">У тебя пока нет созданных капсул. Сделай первый шаг!</p>
+            </div>
+            <button class="btn btn-primary" onclick="startCreationFlow()" style="margin-top:10px;padding:18px;font-size:18px;">✨ Создать секрет</button>
+        </div>
+        <!-- ПОШАГОВОЕ СОЗДАНИЕ -->
+        <div id="create-view" class="hidden">
+            <div class="step-dots" id="create-dots">
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+            </div>
+            <!-- ШАГ 1: МОДЕЛЬ -->
+            <div class="create-step active" id="step-1">
+                <h2 style="margin:0 0 16px;">Внешний вид</h2>
+                <p class="subtitle">Выбери, как будет выглядеть капсула</p>
+                <div class="model-selector" id="model-selector">
                 <button class="model-option active" data-model="safe" onclick="switchModel('safe')"><span class="model-icon">🔒</span> Сейф</button>
                 <button class="model-option" data-model="love" onclick="switchModel('love')"><span class="model-icon">❤️</span> Бокс любви</button>
                 <button class="model-option" data-model="scifi" onclick="switchModel('scifi')"><span class="model-icon">🚀</span> Sci-Fi</button>
             </div>
-            <div class="capsule-type-tabs">
-                <button class="capsule-type-tab active" data-type="personal" onclick="switchCapsuleType('personal')"><span class="tab-icon">👤</span> Личная</button>
-                <button class="capsule-type-tab" data-type="group" onclick="switchCapsuleType('group')"><span class="tab-icon">👥</span> Групповая</button>
-                <button class="capsule-type-tab" data-type="geo" onclick="switchCapsuleType('geo')"><span class="tab-icon">📍</span> Гео</button>
+            <div class="step-nav">
+                <button class="btn btn-secondary" onclick="cancelCreation()">Отмена</button>
+                <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(2)">Далее →</button>
             </div>
+        </div>
+        <!-- ШАГ 2: КОНТЕНТ -->
+        <div class="create-step" id="step-2">
+            <h2 style="margin:0 0 16px;">Что прячем?</h2>
             <div class="media-type-tabs">
                 <button class="media-type-tab active" onclick="switchMediaType('text')" id="tab-text">📝 Текст</button>
                 <button class="media-type-tab" onclick="switchMediaType('photo')" id="tab-photo">📸 Фото</button>
@@ -263,6 +300,19 @@
             </div>
             <div class="input-group hidden" id="group-voice">
                 <div class="voice-section"><button class="voice-btn" id="voice-btn" onclick="toggleRecording()">🎤</button><span class="voice-timer" id="voice-timer">00:00</span><audio id="voice-preview-audio" class="hidden" controls></audio></div>
+            </div>
+            <div class="step-nav">
+                <button class="btn btn-secondary" onclick="prevStep(1)">← Назад</button>
+                <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(3)">Далее →</button>
+            </div>
+        </div>
+        <!-- ШАГ 3: УСЛОВИЯ -->
+        <div class="create-step" id="step-3">
+            <h2 style="margin:0 0 16px;">Условия открытия</h2>
+            <div class="capsule-type-tabs">
+                <button class="capsule-type-tab active" data-type="personal" onclick="switchCapsuleType('personal')"><span class="tab-icon">👤</span> Личная</button>
+                <button class="capsule-type-tab" data-type="group" onclick="switchCapsuleType('group')"><span class="tab-icon">👥</span> Групповая</button>
+                <button class="capsule-type-tab" data-type="geo" onclick="switchCapsuleType('geo')"><span class="tab-icon">📍</span> Гео</button>
             </div>
             <div class="input-group" id="group-timer">
                 <div class="custom-select" id="timer-select">
@@ -288,6 +338,14 @@
                 <div class="geo-coords"><input type="text" id="geo-lat" placeholder="Широта" readonly><input type="text" id="geo-lng" placeholder="Долгота" readonly></div>
                 <div class="settings-card" style="margin-bottom:0"><div class="card-row"><label>Радиус (метров)</label><input type="number" id="geo-radius" value="50" min="5" max="5000" step="5"></div></div>
             </div>
+            <div class="step-nav">
+                <button class="btn btn-secondary" onclick="prevStep(2)">← Назад</button>
+                <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(4)">Далее →</button>
+            </div>
+        </div>
+        <!-- ШАГ 4: БЕЗОПАСНОСТЬ -->
+        <div class="create-step" id="step-4">
+            <h2 style="margin:0 0 16px;">Безопасность</h2>
             <div class="settings-card" id="hack-settings">
                 <div class="card-row">
                     <label>Код-пароль</label>
@@ -296,7 +354,10 @@
                 <div class="card-row"><span style="font-size:14px;color:var(--text)">Разрешить взлом</span><label class="toggle-switch"><input type="checkbox" id="allow-hack" checked onchange="toggleHackPrice()"><div class="toggle-slider"></div></label></div>
                 <div class="card-row" id="row-price"><label>Цена взлома (⭐)</label><input type="number" id="hack-price" value="50" min="1" max="999999"></div>
             </div>
-            <button class="btn btn-primary" onclick="createCapsule()" id="create-btn">Спрятать в сейф</button>
+            <div class="step-nav">
+                <button class="btn btn-secondary" onclick="prevStep(3)">← Назад</button>
+                <button class="btn btn-primary" onclick="createCapsule()" id="create-btn">Спрятать секрет 🔒</button>
+            </div>
         </div>
         <div id="view-view" class="hidden">
             <div class="model-container" id="model-container">
@@ -378,8 +439,61 @@
         let userMarker = null;
         let geoSearchTimeout = null;
         let capsuleData = null;
+        let currentStep = 1;
         if (startParam) {currentCapsuleId = startParam;document.getElementById('view-view').classList.remove('hidden');loadCapsule(currentCapsuleId)}
-        else {document.getElementById('create-view').classList.remove('hidden')}
+        else {document.getElementById('home-view').classList.remove('hidden');loadMyCapsules()}
+        // --- Wizard Functions ---
+        function startCreationFlow() {
+            document.getElementById('home-view').classList.add('hidden');
+            document.getElementById('create-view').classList.remove('hidden');
+            showStep(1);
+            tg.BackButton.show();
+            tg.BackButton.onClick(handleTgBack);
+            tg.HapticFeedback.impactOccurred('light');
+        }
+        function cancelCreation() {
+            document.getElementById('create-view').classList.add('hidden');
+            document.getElementById('home-view').classList.remove('hidden');
+            tg.BackButton.hide();
+            tg.BackButton.offClick(handleTgBack);
+        }
+        function handleTgBack() {
+            if (currentStep > 1) { prevStep(currentStep - 1); }
+            else { cancelCreation(); }
+        }
+        function showStep(step) {
+            document.querySelectorAll('.create-step').forEach(el => el.classList.remove('active'));
+            document.getElementById('step-' + step).classList.add('active');
+            const dots = document.querySelectorAll('.step-dot');
+            dots.forEach((dot, index) => { dot.classList.toggle('active', index === (step - 1)); });
+            currentStep = step;
+            tg.HapticFeedback.selectionChanged();
+        }
+        function nextStep(targetStep) {
+            if (currentStep === 2) {
+                if (currentMediaType === 'text' && !document.getElementById('text-input').value.trim()) return tg.showAlert('Напиши секрет перед тем как идти дальше!');
+                if (currentMediaType === 'photo' && !photoBase64) return tg.showAlert('Прикрепи фото!');
+                if (currentMediaType === 'voice' && !voiceBase64) return tg.showAlert('Запиши голосовое!');
+            }
+            if (currentStep === 3 && currentCapsuleType === 'geo') {
+                const lat = parseFloat(document.getElementById('geo-lat').value);
+                if (!lat || lat === 0) return tg.showAlert('Сначала определи местоположение!');
+            }
+            showStep(targetStep);
+        }
+        function prevStep(targetStep) { showStep(targetStep); }
+        async function loadMyCapsules() {
+            try {
+                const hdrs = {};
+                if (tg.initData) hdrs['X-Telegram-Init-Data'] = tg.initData;
+                const res = await fetch('/api/my', { headers: hdrs });
+                if (!res.ok) return;
+                const capsules = await res.json();
+                if (capsules && capsules.length > 0) {
+                    document.getElementById('my-capsules-text').textContent = 'У тебя ' + capsules.length + ' капсул(а). Создай новую!';
+                }
+            } catch (e) {}
+        }
         function switchModel(model) {
             currentModelType = model;
             document.querySelectorAll('.model-option').forEach(m => m.classList.remove('active'));
@@ -521,6 +635,9 @@
                 const shareUrl=`https://t.me/${BOT_USERNAME}/app?startapp=${data.id}`;
                 const msg=currentCapsuleType==='group'?'Я создал групповую капсулу! Скидываемся?':currentCapsuleType==='geo'?'Я спрятал гео-капсулу! Найди место.':'Я спрятал капсулу времени! Открой, если дождешься.';
                 tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(msg)}`);
+                cancelCreation();
+                document.getElementById('text-input').value='';
+                document.getElementById('passcode-input').value='';
             }catch(e){tg.showAlert("Ошибка сервера.");btn.disabled=false;btn.innerHTML=origText}
         }
 async function loadCapsule(id) {

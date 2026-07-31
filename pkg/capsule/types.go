@@ -14,6 +14,7 @@ type Store interface {
 	GeoCheck(id string, lat, lng float64) (unlocked bool, distance float64, err error)
 	FindPendingReminders() ([]*Capsule, error)
 	MarkReminderSent(id string) error
+	FindBySenderID(userID int64) ([]*Capsule, error)
 	CreateIndexes() error
 }
 
