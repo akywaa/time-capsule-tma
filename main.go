@@ -18,12 +18,15 @@ func main() {
 		log.Fatal("Установи BOT_TOKEN в переменных окружения")
 	}
 
-	// 1. Инициализация SQLite-хранилища
-	store, err := capsule.NewSQLiteStore("capsules.db")
+	// 1. Инициализация MongoDB-хранилища
+	mongoURI := os.Getenv("MONGO_URI")
+	if mongoURI == "" {
+		log.Fatal("Установи MONGO_URI в переменных окружения")
+	}
+	store, err := capsule.NewMongoStore(mongoURI, "capsule_app", "capsules")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer store.Close()
 
 	// 2. Инициализация Telegram бота
 	bot, err := gotgbot.NewBot(token, nil)
@@ -52,7 +55,6 @@ func main() {
 	// Статика: безопасно отдаём файлы с диска
 	fs := http.FileServer(http.Dir("."))
 	http.Handle("/safe.glb", fs)
-	http.Handle("/safe-poster.webp", fs)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)

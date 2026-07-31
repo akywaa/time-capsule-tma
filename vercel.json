@@ -11,10 +11,6 @@
     {
       "src": "safe.glb",
       "use": "@vercel/static"
-    },
-    {
-      "src": "safe-poster.webp",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -25,10 +21,6 @@
     {
       "src": "/safe.glb",
       "dest": "/safe.glb"
-    },
-    {
-      "src": "/safe-poster.webp",
-      "dest": "/safe-poster.webp"
     },
     {
       "src": "/(.*)",
