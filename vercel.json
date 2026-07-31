@@ -11,6 +11,10 @@
     {
       "src": "safe.glb",
       "use": "@vercel/static"
+    },
+    {
+      "src": "safe-closed.glb",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -21,6 +25,10 @@
     {
       "src": "/safe.glb",
       "dest": "/safe.glb"
+    },
+    {
+      "src": "/safe-closed.glb",
+      "dest": "/safe-closed.glb"
     },
     {
       "src": "/(.*)",

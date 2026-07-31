@@ -124,12 +124,23 @@
                 const safeModel = document.getElementById('safe-model');
                 const overlay = document.getElementById('loading-overlay');
                 safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
-                safeModel.setAttribute('src','/safe.glb');
+                const isOpen = data.is_hacked || new Date() >= new Date(data.unlock_at);
+                overlay.classList.remove('hidden');
+                safeModel.setAttribute('src', isOpen ? '/safe-closed.glb' : '/safe.glb');
                 const updateTimer = () => {
                     const now = new Date();
                     const unlockAt = new Date(data.unlock_at);
                     const diff = unlockAt - now;
-                    if (diff <= 0 || data.is_hacked) {
+                    if (diff <= 0) {
+                        clearInterval(timerInterval);
+                        safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
+                        overlay.classList.remove('hidden');
+                        safeModel.setAttribute('src','/safe-closed.glb');
+                        document.getElementById('status-container').classList.add('hidden');
+                        document.getElementById('content-box').classList.remove('hidden');
+                        document.getElementById('secret-content').innerText = data.content;
+                        tg.HapticFeedback.notificationOccurred('success');
+                    } else if (data.is_hacked) {
                         clearInterval(timerInterval);
                         document.getElementById('status-container').classList.add('hidden');
                         document.getElementById('content-box').classList.remove('hidden');
