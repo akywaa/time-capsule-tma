@@ -18,21 +18,32 @@ import (
 func MakeCreateHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			SenderID int64  `json:"sender_id"`
-			Content  string `json:"content"`
-			Hours    int    `json:"hours"`
+			SenderID   int64  `json:"sender_id"`
+			Content    string `json:"content"`
+			Hours      int    `json:"hours"`
+			Passcode   string `json:"passcode"`    // 4 цифры или пусто
+			MediaType  string `json:"media_type"`  // "text", "photo", "voice"
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, `{"error":"Invalid payload"}`, 400)
 			return
 		}
 
+		if req.MediaType == "" {
+			req.MediaType = "text"
+		}
+
 		c := &Capsule{
-			ID:       uuid.New().String(),
-			SenderID: req.SenderID,
-			Content:  req.Content,
-			UnlockAt: time.Now().Add(time.Duration(req.Hours) * time.Hour),
-			IsHacked: false,
+			ID:               uuid.New().String(),
+			SenderID:         req.SenderID,
+			Content:          req.Content,
+			UnlockAt:         time.Now().Add(time.Duration(req.Hours) * time.Hour),
+			IsHacked:         false,
+			Passcode:         req.Passcode,
+			PasscodeAttempts: 3,
+			MediaType:        req.MediaType,
+			Reactions:        make(map[string]int),
+			ReminderSent:     false,
 		}
 
 		if err := store.Insert(c); err != nil {
@@ -41,11 +52,14 @@ func MakeCreateHandler(store Store) http.HandlerFunc {
 			return
 		}
 
-		json.NewEncoder(w).Encode(map[string]string{"id": c.ID})
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"id":          c.ID,
+			"has_passcode": c.Passcode != "",
+		})
 	}
 }
 
-// MakeGetHandler — GET /api/get?id=...
+// MakeGetHandler — GET /api/get?id=...&viewer_id=...
 func MakeGetHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
@@ -60,12 +74,34 @@ func MakeGetHandler(store Store) http.HandlerFunc {
 			return
 		}
 
-		// Скрываем контент, если время не пришло и сейф не взломан
-		if time.Now().Before(c.UnlockAt) && !c.IsHacked {
-			c.Content = "Секрет надежно скрыт :)"
+		// Если передан viewer_id — запоминаем получателя (первый открывший)
+		if viewerStr := r.URL.Query().Get("viewer_id"); viewerStr != "" {
+			var viewerID int64
+			if _, scanErr := fmt.Sscanf(viewerStr, "%d", &viewerID); scanErr == nil && viewerID != 0 {
+				_ = store.SetViewer(id, viewerID)
+			}
 		}
 
-		json.NewEncoder(w).Encode(c)
+		// Собираем ответ
+		resp := map[string]interface{}{
+			"id":                c.ID,
+			"sender_id":         c.SenderID,
+			"unlock_at":         c.UnlockAt,
+			"is_hacked":         c.IsHacked,
+			"media_type":        c.MediaType,
+			"has_passcode":      c.Passcode != "",
+			"passcode_attempts": c.PasscodeAttempts,
+			"reactions":         c.Reactions,
+		}
+
+		isUnlocked := time.Now().After(c.UnlockAt) || c.IsHacked
+		if isUnlocked {
+			resp["content"] = c.Content
+		} else {
+			resp["content"] = "Секрет надежно скрыт :)"
+		}
+
+		json.NewEncoder(w).Encode(resp)
 	}
 }
 
@@ -89,6 +125,127 @@ func MakeInvoiceHandler(bot *gotgbot.Bot) http.HandlerFunc {
 		}
 
 		json.NewEncoder(w).Encode(map[string]string{"url": link})
+	}
+}
+
+// MakeReactionHandler — POST /api/reaction
+func MakeReactionHandler(store Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID    string `json:"id"`
+			Emoji string `json:"emoji"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, `{"error":"Invalid payload"}`, 400)
+			return
+		}
+		if req.ID == "" || req.Emoji == "" {
+			http.Error(w, `{"error":"Missing id or emoji"}`, 400)
+			return
+		}
+
+		c, err := store.AddReaction(req.ID, req.Emoji)
+		if err != nil {
+			http.Error(w, `{"error":"Not Found"}`, 404)
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"reactions": c.Reactions,
+		})
+	}
+}
+
+// MakePasscodeHandler — POST /api/passcode
+func MakePasscodeHandler(store Store) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			ID       string `json:"id"`
+			Passcode string `json:"passcode"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, `{"error":"Invalid payload"}`, 400)
+			return
+		}
+
+		// Проверяем капсулу (один запрос к БД)
+		c, err := store.GetByID(req.ID)
+		if err != nil {
+			http.Error(w, `{"error":"Not Found"}`, 404)
+			return
+		}
+
+		if c.Passcode == "" {
+			http.Error(w, `{"error":"No passcode set"}`, 400)
+			return
+		}
+
+		if c.PasscodeAttempts <= 0 {
+			http.Error(w, `{"error":"No attempts left","attempts":0}`, 403)
+			return
+		}
+
+		if c.Passcode == req.Passcode {
+			// Правильный код — взламываем бесплатно
+			_, err := store.SetHacked(req.ID)
+			if err != nil {
+				http.Error(w, `{"error":"Server error"}`, 500)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"success":  true,
+				"attempts": c.PasscodeAttempts - 1,
+			})
+			return
+		}
+
+		// Неправильный код
+		remaining, err := store.IncrementPasscodeAttempts(req.ID)
+		if err != nil {
+			http.Error(w, `{"error":"Server error"}`, 500)
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":  false,
+			"attempts": remaining,
+		})
+	}
+}
+
+// MakeReminderHandler — POST /api/cron/reminders (для Vercel Cron / ручного вызова)
+func MakeReminderHandler(store Store, bot *gotgbot.Bot) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		capsules, err := store.FindPendingReminders()
+		if err != nil {
+			log.Println("Reminder find error:", err)
+			http.Error(w, `{"error":"DB Error"}`, 500)
+			return
+		}
+
+		sent := 0
+		for _, c := range capsules {
+			// Отправляем получателю (viewer) если известен, иначе создателю
+			targetID := c.ViewerID
+			if targetID == 0 {
+				targetID = c.SenderID
+			}
+			msg := "🔔 Сейф откроется через час! Ты готов узнать секрет?"
+			_, err := bot.SendMessage(targetID, msg, nil)
+			if err != nil {
+				log.Println("Reminder send error:", err)
+				continue
+			}
+			if err := store.MarkReminderSent(c.ID); err != nil {
+				log.Println("Reminder mark error:", err)
+				continue
+			}
+			sent++
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"reminders_sent": sent,
+		})
 	}
 }
 

@@ -6,9 +6,10 @@
     <title>Time Capsule</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#03050a;--surface:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.06);--text:#f4f4f5;--text-dim:#71717a;--accent:#06b6d4;--accent-bright:#22d3ee;--accent-glow:rgba(6,182,212,0.25);--star:#f59e0b;--star-glow:rgba(245,158,11,0.3);--danger:#ef4444;--success:#22c55e }
+        :root { --bg:#03050a;--surface:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.06);--text:#f4f4f5;--text-dim:#71717a;--accent:#06b6d4;--accent-bright:#22d3ee;--accent-glow:rgba(6,182,212,0.25);--star:#f59e0b;--star-glow:rgba(245,158,11,0.3);--danger:#ef4444;--success:#22c55e;--purple:#8b5cf6 }
         *{box-sizing:border-box}
         body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(6,182,212,0.08) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(139,92,246,0.04) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 20% 20%,rgba(6,182,212,0.03) 0%,transparent 50%);color:var(--text);padding:20px 16px 40px;text-align:center;margin:0;min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
         .bg-dots{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.15;background-image:radial-gradient(circle,rgba(255,255,255,0.3) 1px,transparent 1px);background-size:32px 32px;mask-image:radial-gradient(ellipse 60% 60% at 50% 30%,black 30%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse 60% 60% at 50% 30%,black 30%,transparent 70%)}
@@ -17,9 +18,9 @@
         .brand{font-weight:900;font-size:32px;letter-spacing:-1px;background:linear-gradient(135deg,#fff 0%,#a1a1aa 60%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
         .subtitle{color:var(--text-dim);font-size:14px;line-height:1.5;margin:0 0 24px;font-weight:400}
         .input-group{margin-bottom:12px;position:relative}
-        textarea,select{width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.025);color:var(--text);font-size:15px;font-family:inherit;resize:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);outline:none;-webkit-appearance:none}
-        textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow),0 0 20px var(--accent-glow);background:rgba(6,182,212,0.04)}
-        textarea::placeholder{color:#52525b}
+        textarea,select,input[type="text"]{width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.025);color:var(--text);font-size:15px;font-family:inherit;resize:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);outline:none;-webkit-appearance:none}
+        textarea:focus,select:focus,input[type="text"]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow),0 0 20px var(--accent-glow);background:rgba(6,182,212,0.04)}
+        textarea::placeholder,input::placeholder{color:#52525b}
         select{cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px}
         .btn{width:100%;padding:15px;border-radius:14px;border:none;font-weight:600;font-size:15px;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;font-family:inherit;letter-spacing:0.01em}
         .btn-primary{background:linear-gradient(135deg,var(--accent),#0891b2);color:#fff;box-shadow:0 4px 24px var(--accent-glow),0 1px 4px rgba(0,0,0,0.3);margin-top:4px}
@@ -57,8 +58,39 @@
         .unlock-icon{font-size:22px;animation:unlockBounce 0.6s cubic-bezier(0.68,-0.55,0.27,1.55)}
         @keyframes unlockBounce{0%{transform:scale(0) rotate(-20deg);opacity:0}60%{transform:scale(1.2) rotate(5deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
         .secret-content{white-space:pre-wrap;line-height:1.7;margin:0;color:#d4d4d8;font-size:15px}
+        .secret-photo{max-width:100%;border-radius:12px;margin-top:8px}
+        .secret-audio{width:100%;margin-top:8px;border-radius:12px}
         @keyframes fadeSlideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        @media(max-width:380px){.brand{font-size:26px}.timer{font-size:36px}.model-container{height:240px}}
+        .type-tabs{display:flex;gap:8px;margin-bottom:12px}
+        .type-tab{flex:1;padding:10px 8px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.02);color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.25s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
+        .type-tab.active{border-color:var(--accent);background:rgba(6,182,212,0.08);color:var(--accent-bright);box-shadow:0 0 12px var(--accent-glow)}
+        .type-tab:hover:not(.active){border-color:rgba(255,255,255,0.12);color:var(--text)}
+        .passcode-section{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:16px;backdrop-filter:blur(20px)}
+        .passcode-title{font-weight:700;font-size:14px;margin-bottom:12px;color:var(--text-dim)}
+        .passcode-inputs{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+        .passcode-digit{width:48px;height:56px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:24px;font-weight:700;text-align:center;font-family:inherit;outline:none;transition:all 0.25s}
+        .passcode-digit:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);background:rgba(6,182,212,0.06)}
+        .passcode-attempts{color:var(--text-dim);font-size:12px;font-weight:500}
+        .passcode-attempts.warn{color:var(--danger)}
+        .btn-passcode{background:linear-gradient(135deg,var(--purple),#7c3aed);color:#fff;box-shadow:0 4px 24px rgba(139,92,246,0.2);margin-top:8px}
+        .reactions-bar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px;padding:8px 0}
+        .reaction-btn{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:18px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:4px;font-family:inherit;color:var(--text)}
+        .reaction-btn:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);transform:scale(1.05)}
+        .reaction-btn:active{transform:scale(0.9)}
+        .reaction-count{font-size:12px;font-weight:600;color:var(--text-dim);min-width:16px}
+        .reaction-btn.has-reaction{background:rgba(6,182,212,0.08);border-color:var(--accent)}
+        .photo-preview{width:100%;max-height:160px;object-fit:cover;border-radius:12px;margin-bottom:8px;border:1px solid var(--border)}
+        .voice-section{display:flex;flex-direction:column;align-items:center;gap:12px}
+        .voice-btn{width:64px;height:64px;border-radius:50%;border:2px solid var(--accent);background:rgba(6,182,212,0.08);color:var(--accent-bright);font-size:28px;cursor:pointer;transition:all 0.3s;display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px var(--accent-glow)}
+        .voice-btn.recording{border-color:var(--danger);background:rgba(239,68,68,0.1);color:var(--danger);box-shadow:0 0 24px rgba(239,68,68,0.3);animation:recPulse 1s ease-in-out infinite}
+        @keyframes recPulse{0%,100%{box-shadow:0 0 24px rgba(239,68,68,0.3)}50%{box-shadow:0 0 40px rgba(239,68,68,0.6)}}
+        .voice-timer{font-size:14px;color:var(--text-dim);font-variant-numeric:tabular-nums}
+        .voice-preview audio{width:100%;margin-top:8px;border-radius:12px}
+        .file-upload{position:relative}
+        .file-upload input{display:none}
+        .file-upload-label{display:block;padding:14px 16px;border-radius:14px;border:2px dashed var(--border);background:rgba(255,255,255,0.015);color:var(--text-dim);font-size:14px;cursor:pointer;transition:all 0.3s;text-align:center}
+        .file-upload-label:hover{border-color:var(--accent);color:var(--text);background:rgba(6,182,212,0.03)}
+        @media(max-width:380px){.brand{font-size:26px}.timer{font-size:36px}.model-container{height:240px}.passcode-digit{width:42px;height:50px;font-size:20px}}
     </style>
 </head>
 <body>
@@ -67,8 +99,28 @@
         <div id="create-view" class="hidden">
             <div class="brand">Капсула времени</div>
             <p class="subtitle">Спрячь секрет или признание от друга. Доступ откроется только по таймеру — или за звёзды ⭐️</p>
-            <div class="input-group"><textarea id="text-input" rows="4" placeholder="Напиши свой секрет здесь..."></textarea></div>
+            <div class="type-tabs">
+                <button class="type-tab active" onclick="switchMediaType('text')" id="tab-text">📝 Текст</button>
+                <button class="type-tab" onclick="switchMediaType('photo')" id="tab-photo">📸 Фото</button>
+                <button class="type-tab" onclick="switchMediaType('voice')" id="tab-voice">🎤 Голос</button>
+            </div>
+            <div class="input-group" id="group-text"><textarea id="text-input" rows="4" placeholder="Напиши свой секрет здесь..."></textarea></div>
+            <div class="input-group hidden" id="group-photo">
+                <div class="file-upload">
+                    <input type="file" id="photo-input" accept="image/*" onchange="previewPhoto(event)">
+                    <label for="photo-input" class="file-upload-label" id="photo-label">📎 Выбери фото или нажми сюда</label>
+                </div>
+                <img id="photo-preview-img" class="photo-preview hidden" alt="Preview">
+            </div>
+            <div class="input-group hidden" id="group-voice">
+                <div class="voice-section">
+                    <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">🎤</button>
+                    <span class="voice-timer" id="voice-timer">00:00</span>
+                    <audio id="voice-preview-audio" class="hidden" controls></audio>
+                </div>
+            </div>
             <div class="input-group"><select id="time-input"><option value="1">🔒 Запереть на 1 час</option><option value="24">🔒 Запереть на 24 часа</option><option value="168">🔒 Запереть на 1 неделю</option></select></div>
+            <div class="input-group"><input type="text" id="passcode-input" maxlength="4" placeholder="🔢 Код-пароль (4 цифры, опционально)" inputmode="numeric" pattern="[0-9]*"></div>
             <button class="btn btn-primary" onclick="createCapsule()" id="create-btn">Спрятать в сейф</button>
         </div>
         <div id="view-view" class="hidden">
@@ -85,9 +137,27 @@
                 </div>
                 <button id="hack-btn" class="btn btn-stars hidden" onclick="hackCapsule()"><span class="star-icon">⭐</span> Взломать досрочно (50 Stars)</button>
             </div>
+            <div id="passcode-section" class="passcode-section hidden">
+                <div class="passcode-title">🔢 Введи 4-значный пароль</div>
+                <div class="passcode-inputs">
+                    <input type="text" class="passcode-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="digitInput(event,0)" onkeydown="digitKeydown(event,0)" id="pd-0">
+                    <input type="text" class="passcode-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="digitInput(event,1)" onkeydown="digitKeydown(event,1)" id="pd-1">
+                    <input type="text" class="passcode-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="digitInput(event,2)" onkeydown="digitKeydown(event,2)" id="pd-2">
+                    <input type="text" class="passcode-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="digitInput(event,3)" onkeydown="digitKeydown(event,3)" id="pd-3">
+                </div>
+                <div class="passcode-attempts" id="passcode-attempts-text"></div>
+                <button class="btn btn-passcode" onclick="tryPasscode()" id="passcode-submit-btn">Проверить</button>
+            </div>
+            <div class="reactions-bar" id="reactions-bar">
+                <button class="reaction-btn" onclick="sendReaction('👀')">👀 <span class="reaction-count" id="rc-👀">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('😈')">😈 <span class="reaction-count" id="rc-😈">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('🥺')">🥺 <span class="reaction-count" id="rc-🥺">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('🔥')">🔥 <span class="reaction-count" id="rc-🔥">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('💎')">💎 <span class="reaction-count" id="rc-💎">0</span></button>
+            </div>
             <div id="content-box" class="content-box hidden">
                 <h3><span class="unlock-icon">🔓</span> Секрет раскрыт</h3>
-                <div class="secret-content" id="secret-content"></div>
+                <div id="secret-content"></div>
             </div>
         </div>
     </div>
@@ -97,27 +167,105 @@
         const BOT_USERNAME = "KapsulaVremeni_bot";
         const startParam = tg.initDataUnsafe?.start_param;
         let currentCapsuleId = null;
+        let currentMediaType = 'text';
+        let photoBase64 = null;
+        let voiceBase64 = null;
+        let audioBlob = null;
+        let mediaRecorder = null;
+        let voiceStartTime = 0;
+        let voiceTimerInterval = null;
+        let timerInterval;
         if (startParam) {currentCapsuleId = startParam;document.getElementById('view-view').classList.remove('hidden');loadCapsule(currentCapsuleId)}
         else {document.getElementById('create-view').classList.remove('hidden')}
+        function switchMediaType(type) {
+            currentMediaType = type;
+            document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + type).classList.add('active');
+            document.getElementById('group-text').classList.toggle('hidden', type !== 'text');
+            document.getElementById('group-photo').classList.toggle('hidden', type !== 'photo');
+            document.getElementById('group-voice').classList.toggle('hidden', type !== 'voice');
+        }
+        function previewPhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                photoBase64 = e.target.result;
+                document.getElementById('photo-preview-img').src = photoBase64;
+                document.getElementById('photo-preview-img').classList.remove('hidden');
+                document.getElementById('photo-label').textContent = '📎 Нажми чтобы заменить фото';
+            };
+            reader.readAsDataURL(file);
+        }
+        async function toggleRecording() {
+            const btn = document.getElementById('voice-btn');
+            const preview = document.getElementById('voice-preview-audio');
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                btn.classList.remove('recording');
+                btn.textContent = '🎤';
+                clearInterval(voiceTimerInterval);
+                return;
+            }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+                const chunks = [];
+                mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/webm'});
+                mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    audioBlob = new Blob(chunks, {type: 'audio/webm'});
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        voiceBase64 = reader.result;
+                        preview.src = voiceBase64;
+                        preview.classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(audioBlob);
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                mediaRecorder.start();
+                btn.classList.add('recording');
+                btn.textContent = '⏹️';
+                voiceStartTime = Date.now();
+                voiceTimerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - voiceStartTime) / 1000);
+                    const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                    const s = (elapsed % 60).toString().padStart(2, '0');
+                    document.getElementById('voice-timer').textContent = m + ':' + s;
+                }, 200);
+            } catch(e) {
+                tg.showAlert('Нет доступа к микрофону. Разреши запись в настройках.');
+            }
+        }
         async function createCapsule() {
-            const text = document.getElementById('text-input').value.trim();
             const hours = document.getElementById('time-input').value;
             const senderId = tg.initDataUnsafe?.user?.id;
-            if (!text) return tg.showAlert("Напиши секрет!");
+            const passcode = document.getElementById('passcode-input').value.replace(/\D/g, '');
+            let content = '';
+            if (currentMediaType === 'text') {
+                content = document.getElementById('text-input').value.trim();
+                if (!content) return tg.showAlert("Напиши секрет!");
+            } else if (currentMediaType === 'photo') {
+                if (!photoBase64) return tg.showAlert("Выбери фото!");
+                content = photoBase64;
+            } else if (currentMediaType === 'voice') {
+                if (!voiceBase64) return tg.showAlert("Запиши голосовое сообщение!");
+                content = voiceBase64;
+            }
             const btn = document.getElementById('create-btn');
             btn.disabled = true;btn.innerHTML = '<span style="opacity:0.7">Прячем...</span>';
             try {
                 const reqSenderId = senderId || 123456789;
-                const res = await fetch('/api/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sender_id:reqSenderId,content:text,hours:parseInt(hours)})});
+                const res = await fetch('/api/create', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sender_id:reqSenderId,content:content,hours:parseInt(hours),passcode:passcode||'',media_type:currentMediaType})});
                 const data = await res.json();
                 const shareUrl = `https://t.me/${BOT_USERNAME}/app?startapp=${data.id}`;
                 tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent("Я спрятал для тебя капсулу времени! Открой, если сможешь дождаться.")}`);
             } catch(e) {tg.showAlert("Ошибка сервера.");btn.disabled = false;btn.innerHTML = 'Спрятать в сейф'}
         }
-        let timerInterval;
         async function loadCapsule(id) {
             try {
-                const res = await fetch(`/api/get?id=${id}`);
+                const viewerId = tg.initDataUnsafe?.user?.id;
+            const res = await fetch(`/api/get?id=${id}${viewerId ? '&viewer_id=' + viewerId : ''}`);
                 if (!res.ok) return tg.showAlert("Капсула не найдена.");
                 const data = await res.json();
                 clearInterval(timerInterval);
@@ -126,7 +274,18 @@
                 safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
                 const isOpen = data.is_hacked || new Date() >= new Date(data.unlock_at);
                 overlay.classList.remove('hidden');
-                safeModel.setAttribute('src', isOpen ? '/safe-closed.glb' : '/safe.glb');
+                safeModel.setAttribute('src', isOpen ? '/safe.glb' : '/safe-closed.glb');
+                updateReactions(data.reactions || {});
+                const passcodeSection = document.getElementById('passcode-section');
+                if (data.has_passcode && !isOpen) {
+                    passcodeSection.classList.remove('hidden');
+                    document.getElementById('passcode-attempts-text').textContent = `Осталось попыток: ${data.passcode_attempts || 3}`;
+                    if (data.passcode_attempts <= 0) {
+                        document.getElementById('passcode-submit-btn').disabled = true;
+                        document.getElementById('passcode-attempts-text').textContent = 'Попытки закончились. Только платный взлом!';
+                        document.getElementById('passcode-attempts-text').classList.add('warn');
+                    }
+                } else { passcodeSection.classList.add('hidden'); }
                 const updateTimer = () => {
                     const now = new Date();
                     const unlockAt = new Date(data.unlock_at);
@@ -137,15 +296,19 @@
                         overlay.classList.remove('hidden');
                         safeModel.setAttribute('src','/safe-closed.glb');
                         document.getElementById('status-container').classList.add('hidden');
+                        document.getElementById('passcode-section').classList.add('hidden');
                         document.getElementById('content-box').classList.remove('hidden');
-                        document.getElementById('secret-content').innerText = data.content;
+                        showContent(data);
                         tg.HapticFeedback.notificationOccurred('success');
+                        fireConfetti();
                     } else if (data.is_hacked) {
                         clearInterval(timerInterval);
                         document.getElementById('status-container').classList.add('hidden');
+                        document.getElementById('passcode-section').classList.add('hidden');
                         document.getElementById('content-box').classList.remove('hidden');
-                        document.getElementById('secret-content').innerText = data.content;
+                        showContent(data);
                         tg.HapticFeedback.notificationOccurred('success');
+                        fireConfetti();
                     } else {
                         document.getElementById('hack-btn').classList.remove('hidden');
                         const h = Math.floor(diff/(1000*60*60));
@@ -155,8 +318,86 @@
                     }
                 };
                 updateTimer();
+                if (isOpen) {
+                    document.getElementById('status-container').classList.add('hidden');
+                    document.getElementById('passcode-section').classList.add('hidden');
+                    document.getElementById('content-box').classList.remove('hidden');
+                    showContent(data);
+                    fireConfetti();
+                }
                 timerInterval = setInterval(updateTimer,1000);
             } catch(e) {tg.showAlert("Ошибка загрузки.")}
+        }
+        function showContent(data) {
+            const container = document.getElementById('secret-content');
+            if (data.media_type === 'photo') {
+                container.innerHTML = `<img src="${data.content}" class="secret-photo" alt="Секретное фото">`;
+            } else if (data.media_type === 'voice') {
+                container.innerHTML = `<audio controls class="secret-audio" src="${data.content}"></audio>`;
+            } else {
+                container.innerHTML = `<div class="secret-content">${escapeHtml(data.content)}</div>`;
+            }
+        }
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        function fireConfetti() {
+            confetti({particleCount:150,spread:80,origin:{y:0.5,x:0.5},colors:['#06b6d4','#22d3ee','#f59e0b','#8b5cf6','#22c55e','#ef4444']});
+            setTimeout(()=>confetti({particleCount:80,spread:100,origin:{y:0.4,x:0.3},colors:['#06b6d4','#f59e0b','#22c55e']}),200);
+            setTimeout(()=>confetti({particleCount:80,spread:100,origin:{y:0.4,x:0.7},colors:['#22d3ee','#8b5cf6','#ef4444']}),400);
+        }
+        function updateReactions(reactions) {
+            ['👀','😈','🥺','🔥','💎'].forEach(e => {
+                const el = document.getElementById('rc-'+e);
+                if (el) el.textContent = reactions[e] || 0;
+            });
+        }
+        async function sendReaction(emoji) {
+            if (!currentCapsuleId) return;
+            tg.HapticFeedback.impactOccurred('light');
+            try {
+                const res = await fetch('/api/reaction', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentCapsuleId,emoji:emoji})});
+                const data = await res.json();
+                updateReactions(data.reactions || {});
+            } catch(e) {}
+        }
+        function digitInput(e, idx) {
+            const val = e.target.value.replace(/\D/g,'');
+            e.target.value = val.slice(-1);
+            if (val && idx < 3) document.getElementById('pd-'+(idx+1))?.focus();
+        }
+        function digitKeydown(e, idx) {
+            if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                document.getElementById('pd-'+(idx-1))?.focus();
+            }
+        }
+        async function tryPasscode() {
+            const digits = [];
+            for (let i=0;i<4;i++) digits.push(document.getElementById('pd-'+i).value);
+            const code = digits.join('');
+            if (code.length < 4) return tg.showAlert('Введи все 4 цифры!');
+            try {
+                const res = await fetch('/api/passcode', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:currentCapsuleId,passcode:code})});
+                const data = await res.json();
+                if (data.success) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    document.getElementById('passcode-section').classList.add('hidden');
+                    loadCapsule(currentCapsuleId);
+                } else {
+                    tg.HapticFeedback.notificationOccurred('error');
+                    document.getElementById('passcode-attempts-text').textContent = `Осталось попыток: ${data.attempts}`;
+                    if (data.attempts <= 0) {
+                        document.getElementById('passcode-submit-btn').disabled = true;
+                        document.getElementById('passcode-attempts-text').textContent = 'Попытки закончились. Только платный взлом!';
+                        document.getElementById('passcode-attempts-text').classList.add('warn');
+                    }
+                    for (let i=0;i<4;i++) document.getElementById('pd-'+i).value = '';
+                    document.getElementById('pd-0').focus();
+                    tg.showAlert(`Неверный код. ${data.attempts > 0 ? 'Осталось '+data.attempts+' попыток.' : 'Попытки закончились!'}`);
+                }
+            } catch(e) {tg.showAlert('Ошибка.')}
         }
         async function hackCapsule() {
             tg.HapticFeedback.impactOccurred('medium');

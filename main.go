@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"capsule_bot/pkg/capsule"
 
@@ -26,6 +27,11 @@ func main() {
 	store, err := capsule.NewMongoStore(mongoURI, "capsule_app", "capsules")
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// Создаём индексы
+	if err := store.CreateIndexes(); err != nil {
+		log.Println("⚠️ Ошибка создания индексов:", err)
 	}
 
 	// 2. Инициализация Telegram бота
@@ -51,7 +57,35 @@ func main() {
 	}
 	log.Printf("%s начал работу!", bot.User.Username)
 
-	// 3. Web API роутинг
+	// 3. Фоновая горутина для напоминаний
+	go func() {
+		ticker := time.NewTicker(60 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			capsules, err := store.FindPendingReminders()
+			if err != nil {
+				log.Println("Reminder check error:", err)
+				continue
+			}
+			for _, c := range capsules {
+				targetID := c.ViewerID
+				if targetID == 0 {
+					targetID = c.SenderID
+				}
+				msg := "🔔 Сейф откроется через час! Ты готов узнать секрет?"
+				_, err := bot.SendMessage(targetID, msg, nil)
+				if err != nil {
+					log.Println("Reminder send error:", err)
+					continue
+				}
+				if err := store.MarkReminderSent(c.ID); err != nil {
+					log.Println("Reminder mark error:", err)
+				}
+			}
+		}
+	}()
+
+	// 4. Web API роутинг
 	// Статика: безопасно отдаём файлы с диска
 	fs := http.FileServer(http.Dir("."))
 	http.Handle("/safe.glb", fs)
@@ -66,6 +100,9 @@ func main() {
 	http.HandleFunc("/api/create", capsule.MakeCreateHandler(store))
 	http.HandleFunc("/api/get", capsule.MakeGetHandler(store))
 	http.HandleFunc("/api/invoice", capsule.MakeInvoiceHandler(bot))
+	http.HandleFunc("/api/reaction", capsule.MakeReactionHandler(store))
+	http.HandleFunc("/api/passcode", capsule.MakePasscodeHandler(store))
+	http.HandleFunc("/api/cron/reminders", capsule.MakeReminderHandler(store, bot))
 
 	log.Println("Web-сервер запущен на порту :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

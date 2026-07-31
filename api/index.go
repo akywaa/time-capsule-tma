@@ -39,6 +39,11 @@ func initServices() error {
 			return
 		}
 
+		// Создаём индексы (не фатально при ошибке)
+		if err := store.CreateIndexes(); err != nil {
+			log.Println("⚠️ Ошибка создания индексов:", err)
+		}
+
 		// 2. Telegram Bot
 		botToken := os.Getenv("BOT_TOKEN")
 		if botToken == "" {
@@ -85,6 +90,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		capsule.MakeGetHandler(store)(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/invoice"):
 		capsule.MakeInvoiceHandler(bot)(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/reaction"):
+		capsule.MakeReactionHandler(store)(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/passcode"):
+		capsule.MakePasscodeHandler(store)(w, r)
+	case strings.HasPrefix(r.URL.Path, "/api/cron/reminders"):
+		capsule.MakeReminderHandler(store, bot)(w, r)
 	case strings.HasPrefix(r.URL.Path, "/api/webhook"):
 		apiWebhook(w, r)
 	default:
