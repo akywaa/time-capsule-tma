@@ -163,16 +163,12 @@
     <!-- ЭКРАН ПРОСМОТРА / ВЗЛОМА -->
     <div id="view-view" class="hidden">
         
-        <!-- 3D МОДЕЛЬ СЕЙФА -->
+        <!-- 3D МОДЕЛЬ СЕЙФА: src задаётся только после ответа API, poster показывается сразу -->
         <div class="model-container">
-            <!-- 
-              src="safe.glb" - путь к 3D модели.
-              auto-rotate - автоматически крутится.
-              camera-controls - позволяет крутить модель пальцем.
-              disable-zoom - чтобы страница не дергалась при попытке скролла.
-            -->
             <model-viewer id="safe-model" 
-                          src="/safe.glb" 
+                          poster="/safe-poster.webp"
+                          loading="lazy"
+                          reveal="interaction"
                           auto-rotate 
                           camera-controls 
                           disable-zoom 
@@ -202,7 +198,7 @@
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
-        tg.setHeaderColor('#09090b'); // Темный цвет под новый фон
+        tg.setHeaderColor('#09090b');
 
         const BOT_USERNAME = "KapsulaVremeni_bot"; 
         const startParam = tg.initDataUnsafe?.start_param;
@@ -228,7 +224,6 @@
             btn.innerText = "Прячем...";
 
             try {
-                // Если тестируешь в браузере без ТГ, используем фейковый ID
                 const reqSenderId = senderId || 123456789; 
 
                 const res = await fetch('/api/create', {
@@ -256,7 +251,20 @@
                 if (!res.ok) return tg.showAlert("Капсула не найдена или удалена.");
                 const data = await res.json();
 
+                // 1. ДАННЫЕ ПОЛУЧЕНЫ — запускаем таймер мгновенно
                 clearInterval(timerInterval);
+
+                // 2. Только теперь загружаем тяжёлую 3D-модель
+                const safeModel = document.getElementById('safe-model');
+                const now = new Date();
+                const unlockAt = new Date(data.unlock_at);
+
+                if (data.is_hacked || now >= unlockAt) {
+                    // Сейф открыт — здесь можно подгрузить модель открытого сейфа
+                    // safeModel.setAttribute('src', '/safe_open.glb');
+                } else {
+                    safeModel.setAttribute('src', '/safe.glb');
+                }
                 
                 const updateTimer = () => {
                     const now = new Date();
@@ -266,12 +274,7 @@
                     if (diff <= 0 || data.is_hacked) {
                         clearInterval(timerInterval);
                         
-                        // Меняем визуал открытого сейфа
                         document.getElementById('status-container').classList.add('hidden');
-                        
-                        // Если найдешь модель открытого сейфа, можно поменять ее тут:
-                        // document.getElementById('safe-model').setAttribute('src', '/safe_open.glb');
-                        
                         document.getElementById('content-box').classList.remove('hidden');
                         document.getElementById('secret-content').innerText = data.content;
                         tg.HapticFeedback.notificationOccurred('success');
