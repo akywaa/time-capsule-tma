@@ -49,7 +49,15 @@ func main() {
 	log.Printf("%s начал работу!", bot.User.Username)
 
 	// 3. Web API роутинг
+	// Статика: безопасно отдаём файлы с диска
+	fs := http.FileServer(http.Dir("."))
+	http.Handle("/safe.glb", fs)
+	http.Handle("/safe-poster.webp", fs)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
 		http.ServeFile(w, r, "index.html")
 	})
 	http.HandleFunc("/api/create", capsule.MakeCreateHandler(store))

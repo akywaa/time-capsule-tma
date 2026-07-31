@@ -167,8 +167,6 @@
         <div class="model-container">
             <model-viewer id="safe-model" 
                           poster="/safe-poster.webp"
-                          loading="lazy"
-                          reveal="interaction"
                           auto-rotate 
                           camera-controls 
                           disable-zoom 
@@ -256,15 +254,9 @@
 
                 // 2. Только теперь загружаем тяжёлую 3D-модель
                 const safeModel = document.getElementById('safe-model');
-                const now = new Date();
-                const unlockAt = new Date(data.unlock_at);
 
-                if (data.is_hacked || now >= unlockAt) {
-                    // Сейф открыт — здесь можно подгрузить модель открытого сейфа
-                    // safeModel.setAttribute('src', '/safe_open.glb');
-                } else {
-                    safeModel.setAttribute('src', '/safe.glb');
-                }
+                // Всегда ставим src — модель загрузится и заменит постер
+                safeModel.setAttribute('src', '/safe.glb');
                 
                 const updateTimer = () => {
                     const now = new Date();
