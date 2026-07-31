@@ -43,6 +43,7 @@ func MakeCreateHandler(store Store) http.HandlerFunc {
 			PasscodeAttempts: 3,
 			MediaType:        req.MediaType,
 			Reactions:        make(map[string]int),
+			ReactionsUsers:   make(map[int64]string),
 			ReminderSent:     false,
 		}
 
@@ -132,19 +133,20 @@ func MakeInvoiceHandler(bot *gotgbot.Bot) http.HandlerFunc {
 func MakeReactionHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			ID    string `json:"id"`
-			Emoji string `json:"emoji"`
+			ID     string `json:"id"`
+			Emoji  string `json:"emoji"`
+			UserID int64  `json:"user_id"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, `{"error":"Invalid payload"}`, 400)
 			return
 		}
-		if req.ID == "" || req.Emoji == "" {
-			http.Error(w, `{"error":"Missing id or emoji"}`, 400)
+		if req.ID == "" || req.Emoji == "" || req.UserID == 0 {
+			http.Error(w, `{"error":"Missing id, emoji, or user_id"}`, 400)
 			return
 		}
 
-		c, err := store.AddReaction(req.ID, req.Emoji)
+		c, err := store.ToggleReaction(req.ID, req.UserID, req.Emoji)
 		if err != nil {
 			http.Error(w, `{"error":"Not Found"}`, 404)
 			return

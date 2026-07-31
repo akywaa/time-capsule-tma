@@ -8,7 +8,7 @@ type Store interface {
 	GetByID(id string) (*Capsule, error)
 	SetHacked(id string) (*Capsule, error)
 	SetViewer(id string, viewerID int64) error
-	AddReaction(id string, emoji string) (*Capsule, error)
+	ToggleReaction(id string, userID int64, emoji string) (*Capsule, error)
 	IncrementPasscodeAttempts(id string) (int, error)
 	FindPendingReminders() ([]*Capsule, error)
 	MarkReminderSent(id string) error
@@ -25,7 +25,8 @@ type Capsule struct {
 	Passcode         string         `json:"-" bson:"passcode"`                    // 4-значный код, пусто = без кода
 	PasscodeAttempts int            `json:"passcode_attempts" bson:"passcode_attempts"` // попыток осталось (старт = 3)
 	MediaType        string         `json:"media_type" bson:"media_type"`         // "text", "photo", "voice"
-	Reactions        map[string]int `json:"reactions" bson:"reactions"`           // эмодзи → кол-во
-	ReminderSent     bool           `json:"-" bson:"reminder_sent"`                // отправлено ли напоминание
+	Reactions        map[string]int  `json:"reactions" bson:"reactions"`            // эмодзи → кол-во
+	ReactionsUsers   map[int64]string `json:"-" bson:"reactions_users"`            // userId → эмодзи
+	ReminderSent     bool            `json:"-" bson:"reminder_sent"`               // отправлено ли напоминание
 	ViewerID         int64          `json:"-" bson:"viewer_id"`                   // ID получателя (первый открывший)
 }

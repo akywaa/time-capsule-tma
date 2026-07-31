@@ -2,6 +2,7 @@ package capsule
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -82,20 +83,58 @@ func (s *MongoStore) SetHacked(id string) (*Capsule, error) {
 	return &c, nil
 }
 
-// AddReaction добавляет/увеличивает счётчик реакции-эмодзи
-func (s *MongoStore) AddReaction(id string, emoji string) (*Capsule, error) {
-	var c Capsule
-	err := s.col.FindOneAndUpdate(
-		context.TODO(),
-		bson.M{"_id": id},
-		bson.M{"$inc": bson.M{"reactions." + emoji: 1}},
-		options.FindOneAndUpdate().SetReturnDocument(options.After),
-	).Decode(&c)
+// ToggleReaction — добавляет/убирает реакцию пользователя (1 чел = 1 реакция)
+func (s *MongoStore) ToggleReaction(id string, userID int64, emoji string) (*Capsule, error) {
+	// Читаем текущее состояние
+	c, err := s.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
-	return &c, nil
+
+	if c.ReactionsUsers == nil {
+		c.ReactionsUsers = make(map[int64]string)
+	}
+	if c.Reactions == nil {
+		c.Reactions = make(map[string]int)
+	}
+
+	oldEmoji, hasReaction := c.ReactionsUsers[userID]
+
+	update := bson.M{}
+	if hasReaction && oldEmoji == emoji {
+		// Убираем реакцию (повторный клик по той же)
+		update["$unset"] = bson.M{"reactions_users." + fmtKey(userID): ""}
+		if c.Reactions[emoji] > 0 {
+			update["$inc"] = bson.M{"reactions." + emoji: -1}
+		}
+	} else if hasReaction && oldEmoji != emoji {
+		// Меняем реакцию
+		update["$set"] = bson.M{"reactions_users." + fmtKey(userID): emoji}
+		inc := bson.M{"reactions." + emoji: 1}
+		if c.Reactions[oldEmoji] > 0 {
+			inc["reactions."+oldEmoji] = -1
+		}
+		update["$inc"] = inc
+	} else {
+		// Новая реакция
+		update["$set"] = bson.M{"reactions_users." + fmtKey(userID): emoji}
+		update["$inc"] = bson.M{"reactions." + emoji: 1}
+	}
+
+	var result Capsule
+	err = s.col.FindOneAndUpdate(
+		context.TODO(),
+		bson.M{"_id": id},
+		update,
+		options.FindOneAndUpdate().SetReturnDocument(options.After),
+	).Decode(&result)
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
+
+func fmtKey(k int64) string { return fmt.Sprintf("%d", k) }
 
 // SetViewer сохраняет ID первого открывшего капсулу (получателя)
 func (s *MongoStore) SetViewer(id string, viewerID int64) error {
