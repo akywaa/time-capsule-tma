@@ -29,7 +29,7 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
+"routes": [
     {
       "src": "/api/(.*)",
       "dest": "/api/index.go"
@@ -49,6 +49,14 @@
     {
       "src": "/sci-fi_box.glb",
       "dest": "/sci-fi_box.glb"
+    },
+    {
+      "src": "/style.css",
+      "dest": "/style.css"
+    },
+    {
+      "src": "/app.js",
+      "dest": "/app.js"
     },
     {
       "src": "/(.*)",
