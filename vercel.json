@@ -15,40 +15,12 @@
     {
       "src": "app.js",
       "use": "@vercel/static"
-    },
-    {
-      "src": "safe.glb",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "sci-fi_box.glb",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "love_box.glb",
-      "use": "@vercel/static"
     }
   ],
-"routes": [
+  "routes": [
     {
       "src": "/api/(.*)",
       "dest": "/api/index.go"
-    },
-    {
-      "src": "/safe.glb",
-      "dest": "/safe.glb"
-    },
-    {
-      "src": "/safe-open.glb",
-      "dest": "/safe-open.glb"
-    },
-    {
-      "src": "/love_box.glb",
-      "dest": "/love_box.glb"
-    },
-    {
-      "src": "/sci-fi_box.glb",
-      "dest": "/sci-fi_box.glb"
     },
     {
       "src": "/style.css",

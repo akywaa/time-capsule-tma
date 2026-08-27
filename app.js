@@ -138,11 +138,13 @@ function switchModel(model) {
     }
 }
 
+const CDN_URL = "https://github.com/akywaa/time-capsule-tma/releases/download/v1.0.0";
+
 function getModelPaths(modelType) {
     const models = {
-        'safe': { closed: '/safe.glb', open: '/safe-open.glb' },
-        'love': { closed: '/love_box.glb', open: '/love_box.glb' },
-        'scifi': { closed: '/sci-fi_box.glb', open: '/sci-fi_box.glb' }
+        'safe': { closed: `${CDN_URL}/safe.glb`, open: `${CDN_URL}/safe-open.glb` },
+        'love': { closed: `${CDN_URL}/love_box.glb`, open: `${CDN_URL}/love_box.glb` },
+        'scifi': { closed: `${CDN_URL}/sci-fi_box.glb`, open: `${CDN_URL}/sci-fi_box.glb` }
     };
     return models[modelType] || models['safe'];
 }

@@ -5,14 +5,9 @@ import (
 	"net/http"
 )
 
-// Local dev server. Production runs on Vercel via api/index.go (webhook mode).
 func main() {
 	fs := http.FileServer(http.Dir("."))
 
-	http.Handle("/safe.glb", fs)
-	http.Handle("/safe-open.glb", fs)
-	http.Handle("/love_box.glb", fs)
-	http.Handle("/sci-fi_box.glb", fs)
 	http.Handle("/style.css", fs)
 	http.Handle("/app.js", fs)
 
