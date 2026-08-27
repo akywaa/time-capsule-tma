@@ -2,7 +2,7 @@ package capsule
 
 import "time"
 
-// Store — общий интерфейс для хранения капсул (SQLite / MongoDB)
+// Store defines the persistence interface for capsules.
 type Store interface {
 	Insert(c *Capsule) error
 	GetByID(id string) (*Capsule, error)
@@ -18,7 +18,7 @@ type Store interface {
 	CreateIndexes() error
 }
 
-// Capsule — структура капсулы времени
+// Capsule represents a time-locked secret with optional geo, group, or passcode features.
 type Capsule struct {
 	ID                 string           `json:"id" bson:"_id"`
 	SenderID           int64            `json:"sender_id" bson:"sender_id"`
@@ -34,12 +34,12 @@ type Capsule struct {
 	ViewerID           int64            `json:"-" bson:"viewer_id"`
 	HackPrice          int              `json:"hack_price" bson:"hack_price"`
 	AllowHack          bool             `json:"allow_hack" bson:"allow_hack"`
-	CapsuleType        string           `json:"capsule_type" bson:"capsule_type"`           // "personal", "group", "geo"
+	CapsuleType        string           `json:"capsule_type" bson:"capsule_type"`
 	ChatID             int64            `json:"-" bson:"chat_id"`
-	GoalStars          int              `json:"goal_stars" bson:"goal_stars"`               // цель для группового сбора
-	StarsContributions map[int64]int    `json:"stars_contributions" bson:"stars_contributions"` // userId → сумма
+	GoalStars          int              `json:"goal_stars" bson:"goal_stars"`
+	StarsContributions map[int64]int    `json:"stars_contributions" bson:"stars_contributions"`
 	GeoLat             float64          `json:"geo_lat" bson:"geo_lat"`
 	GeoLng             float64          `json:"geo_lng" bson:"geo_lng"`
-	GeoRadius          int              `json:"geo_radius" bson:"geo_radius"`               // метров
-	ModelType          string           `json:"model_type" bson:"model_type"`               // "safe", "love", "scifi"
+	GeoRadius          int              `json:"geo_radius" bson:"geo_radius"`
+	ModelType          string           `json:"model_type" bson:"model_type"`
 }

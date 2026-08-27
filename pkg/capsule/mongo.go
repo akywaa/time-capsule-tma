@@ -11,12 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// MongoStore — реализация Store на MongoDB
+// MongoStore implements Store using MongoDB.
 type MongoStore struct {
 	col *mongo.Collection
 }
 
-// NewMongoStore подключается к MongoDB и возвращает Store
+// NewMongoStore connects to MongoDB and returns a ready-to-use store.
 func NewMongoStore(uri, dbName, collName string) (*MongoStore, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -34,7 +34,7 @@ func NewMongoStore(uri, dbName, collName string) (*MongoStore, error) {
 	return &MongoStore{col: col}, nil
 }
 
-// CreateIndexes создаёт индексы для быстрого поиска
+// CreateIndexes sets up sender_id and reminder indexes for query performance.
 func (s *MongoStore) CreateIndexes() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -84,9 +84,7 @@ func (s *MongoStore) SetHacked(id string) (*Capsule, error) {
 	return &c, nil
 }
 
-// ToggleReaction — добавляет/убирает реакцию пользователя (1 чел = 1 реакция)
 func (s *MongoStore) ToggleReaction(id string, userID int64, emoji string) (*Capsule, error) {
-	// Читаем текущее состояние
 	c, err := s.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -103,13 +101,11 @@ func (s *MongoStore) ToggleReaction(id string, userID int64, emoji string) (*Cap
 
 	update := bson.M{}
 	if hasReaction && oldEmoji == emoji {
-		// Убираем реакцию (повторный клик по той же)
 		update["$unset"] = bson.M{"reactions_users." + fmtKey(userID): ""}
 		if c.Reactions[emoji] > 0 {
 			update["$inc"] = bson.M{"reactions." + emoji: -1}
 		}
 	} else if hasReaction && oldEmoji != emoji {
-		// Меняем реакцию
 		update["$set"] = bson.M{"reactions_users." + fmtKey(userID): emoji}
 		inc := bson.M{"reactions." + emoji: 1}
 		if c.Reactions[oldEmoji] > 0 {
@@ -117,7 +113,6 @@ func (s *MongoStore) ToggleReaction(id string, userID int64, emoji string) (*Cap
 		}
 		update["$inc"] = inc
 	} else {
-		// Новая реакция
 		update["$set"] = bson.M{"reactions_users." + fmtKey(userID): emoji}
 		update["$inc"] = bson.M{"reactions." + emoji: 1}
 	}
@@ -137,7 +132,6 @@ func (s *MongoStore) ToggleReaction(id string, userID int64, emoji string) (*Cap
 
 func fmtKey(k int64) string { return fmt.Sprintf("%d", k) }
 
-// SetViewer сохраняет ID первого открывшего капсулу (получателя)
 func (s *MongoStore) SetViewer(id string, viewerID int64) error {
 	_, err := s.col.UpdateOne(
 		context.TODO(),
@@ -147,11 +141,8 @@ func (s *MongoStore) SetViewer(id string, viewerID int64) error {
 	return err
 }
 
-// AttemptPasscode — атомарная проверка пасскода (без race condition)
-// Возвращает: success=true если код верный (капсула взломана), remaining попыток после операции
 func (s *MongoStore) AttemptPasscode(id string, passcode string) (bool, int, error) {
 	ctx := context.TODO()
-	// Пробуем атомарно: если passcode совпал И попытки ещё есть → взламываем
 	var c Capsule
 	err := s.col.FindOneAndUpdate(ctx,
 		bson.M{"_id": id, "passcode": passcode, "passcode_attempts": bson.M{"$gt": 0}},
@@ -159,13 +150,11 @@ func (s *MongoStore) AttemptPasscode(id string, passcode string) (bool, int, err
 		options.FindOneAndUpdate().SetReturnDocument(options.After),
 	).Decode(&c)
 	if err == nil {
-		// Успех — код верный
 		return true, c.PasscodeAttempts, nil
 	}
 	if err != mongo.ErrNoDocuments {
 		return false, 0, err
 	}
-	// Код неверный — декрементируем попытки (если ещё остались)
 	err = s.col.FindOneAndUpdate(ctx,
 		bson.M{"_id": id, "passcode_attempts": bson.M{"$gt": 0}},
 		bson.M{"$inc": bson.M{"passcode_attempts": -1}},
@@ -173,15 +162,13 @@ func (s *MongoStore) AttemptPasscode(id string, passcode string) (bool, int, err
 	).Decode(&c)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return false, 0, nil // попытки кончились
+			return false, 0, nil
 		}
 		return false, 0, err
 	}
 	return false, c.PasscodeAttempts, nil
 }
 
-// FindPendingReminders находит капсулы, для которых пора отправить напоминание
-// (~за час до открытия, окно: 50-70 минут до unlock)
 func (s *MongoStore) FindPendingReminders() ([]*Capsule, error) {
 	now := time.Now()
 	from := now.Add(50 * time.Minute)
@@ -210,7 +197,6 @@ func (s *MongoStore) FindPendingReminders() ([]*Capsule, error) {
 	return capsules, nil
 }
 
-// MarkReminderSent помечает, что напоминание отправлено
 func (s *MongoStore) MarkReminderSent(id string) error {
 	_, err := s.col.UpdateOne(
 		context.TODO(),
@@ -220,13 +206,11 @@ func (s *MongoStore) MarkReminderSent(id string) error {
 	return err
 }
 
-// Ensure interface satisfaction
 var _ Store = (*MongoStore)(nil)
 
-// Contribute — добавляет вклад пользователя в групповой сбор
+// Contribute adds stars from a user toward a group capsule's unlock goal.
 func (s *MongoStore) Contribute(id string, userID int64, amount int) (*Capsule, error) {
 	ctx := context.TODO()
-	// Атомарно добавляем вклад
 	key := fmt.Sprintf("stars_contributions.%d", userID)
 	var c Capsule
 	err := s.col.FindOneAndUpdate(ctx,
@@ -237,7 +221,6 @@ func (s *MongoStore) Contribute(id string, userID int64, amount int) (*Capsule, 
 	if err != nil {
 		return nil, err
 	}
-	// Проверяем, достигнута ли цель
 	total := 0
 	for _, v := range c.StarsContributions {
 		total += v
@@ -248,13 +231,12 @@ func (s *MongoStore) Contribute(id string, userID int64, amount int) (*Capsule, 
 	return &c, nil
 }
 
-// GeoCheck — проверяет расстояние до цели и автоматически разблокирует
+// GeoCheck uses haversine to determine if the user is within the capsule's radius.
 func (s *MongoStore) GeoCheck(id string, lat, lng float64) (bool, float64, error) {
 	c, err := s.GetByID(id)
 	if err != nil {
 		return false, 0, err
 	}
-	// Haversine formula
 	dist := haversine(lat, lng, c.GeoLat, c.GeoLng)
 	if dist <= float64(c.GeoRadius) {
 		_, err := s.SetHacked(id)
@@ -263,15 +245,22 @@ func (s *MongoStore) GeoCheck(id string, lat, lng float64) (bool, float64, error
 	return false, dist, nil
 }
 
+// спищдил с stackoverflow, математику не проверял, но вроде ок
 func haversine(lat1, lng1, lat2, lng2 float64) float64 {
-	const R = 6371000.0
+	const R = 6371000.0 // радиус земли в метрах
 	dLat := (lat2 - lat1) * math.Pi / 180
 	dLng := (lng2 - lng1) * math.Pi / 180
-	a := math.Sin(dLat/2)*math.Sin(dLat/2) + math.Cos(lat1*math.Pi/180)*math.Cos(lat2*math.Pi/180)*math.Sin(dLng/2)*math.Sin(dLng/2)
-	return R * 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	// fmt.Println("DEBUG coords:", lat1, lng1, lat2, lng2)
+
+	a := math.Sin(dLat/2)*math.Sin(dLat/2) +
+		math.Cos(lat1*math.Pi/180)*math.Cos(lat2*math.Pi/180)*
+			math.Sin(dLng/2)*math.Sin(dLng/2)
+	
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+	return R * c
 }
 
-// FindBySenderID возвращает все капсулы пользователя (без секретного контента)
 func (s *MongoStore) FindBySenderID(userID int64) ([]*Capsule, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

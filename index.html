@@ -10,231 +10,17 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <style>
-        :root{--bg:#03050a;--surface:rgba(255,255,255,0.08);--border:rgba(255,255,255,0.1);--glass-blur:blur(24px);--text:#f4f4f5;--text-dim:#8e8e93;--accent:#0a84ff;--accent-bright:#30d158;--accent-glow:rgba(10,132,255,0.25);--star:#f59e0b;--star-glow:rgba(245,158,11,0.3);--danger:#ff453a;--success:#30d158;--purple:#8b5cf6;--geo:#10b981;--geo-glow:rgba(16,185,129,0.3)}
-        *{box-sizing:border-box}
-        body{font-family:-apple-system,BlinkMacSystemFont,'Inter',system-ui,sans-serif;background:var(--bg);background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(6,182,212,0.08) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 80%,rgba(139,92,246,0.04) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 20% 20%,rgba(6,182,212,0.03) 0%,transparent 50%);color:var(--text);padding:20px 16px 40px;text-align:center;margin:0;min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-        .bg-dots{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.15;background-image:radial-gradient(circle,rgba(255,255,255,0.3) 1px,transparent 1px);background-size:32px 32px;mask-image:radial-gradient(ellipse 60% 60% at 50% 30%,black 30%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse 60% 60% at 50% 30%,black 30%,transparent 70%)}
-        .content-wrap{position:relative;z-index:1;max-width:420px;margin:0 auto}
-        .hidden{display:none!important}
-        .brand{font-weight:900;font-size:32px;letter-spacing:-1px;background:linear-gradient(135deg,#fff 0%,#a1a1aa 60%,var(--accent-bright) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
-        .subtitle{color:var(--text-dim);font-size:14px;line-height:1.5;margin:0 0 20px;font-weight:400}
-        .input-group{margin-bottom:10px;position:relative}
-        textarea,input[type="text"],input[type="number"]{width:100%;padding:16px;border-radius:16px;border:0.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;font-family:inherit;resize:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);outline:none;-webkit-appearance:none;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 24px -8px rgba(0,0,0,0.5)}
-        textarea:focus,input[type="text"]:focus,input[type="number"]:focus{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.12);box-shadow:0 4px 24px -8px rgba(0,0,0,0.5)}
-        textarea::placeholder,input::placeholder{color:#636366}
-        input[type="number"]::-webkit-outer-spin-button,input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-        input[type="number"]{-moz-appearance:textfield}
-        /* Custom Dropdown */
-        .custom-select{position:relative;user-select:none}
-        .custom-select-trigger{width:100%;padding:16px 40px 16px 16px;border-radius:16px;border:0.5px solid var(--border);background:var(--surface);color:var(--text);font-size:16px;font-family:inherit;cursor:pointer;transition:all 0.3s;outline:none;text-align:left;display:flex;align-items:center;gap:8px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 24px -8px rgba(0,0,0,0.5)}
-        .custom-select-trigger::after{content:'';position:absolute;right:16px;top:50%;transform:translateY(-50%);width:12px;height:8px;background:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238e8e93' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;transition:transform 0.3s}
-        .custom-select.open .custom-select-trigger{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.12);box-shadow:0 4px 24px -8px rgba(0,0,0,0.5)}
-        .custom-select.open .custom-select-trigger::after{transform:translateY(-50%) rotate(180deg)}
-        .custom-select-dropdown{position:absolute;top:calc(100% + 6px);left:0;right:0;background:rgba(15,18,25,0.98);border:0.5px solid var(--border);border-radius:16px;overflow:hidden;z-index:50;animation:dropdownIn 0.2s ease;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 12px 40px rgba(0,0,0,0.5)}
-        @keyframes dropdownIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-        .custom-option{padding:14px 16px;cursor:pointer;transition:all 0.15s;text-align:left;font-size:14px;font-weight:500;color:var(--text-dim);display:flex;align-items:center;gap:8px}
-        .custom-option:hover{background:rgba(255,255,255,0.04);color:var(--text)}
-        .custom-option.selected{color:var(--accent);background:rgba(10,132,255,0.08);font-weight:600}
-        .btn{width:100%;padding:15px;border-radius:14px;border:none;font-weight:600;font-size:15px;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);position:relative;overflow:hidden;font-family:inherit;letter-spacing:0.01em}
-        .btn-primary{background:#fff;color:#000;box-shadow:0 4px 24px rgba(255,255,255,0.15);border-radius:16px;font-size:17px;padding:16px;font-weight:600;margin-top:10px}
-        .btn-primary:hover{background:#f4f4f5;transform:translateY(-2px);box-shadow:0 6px 32px rgba(255,255,255,0.2)}
-        .btn-primary:active{transform:scale(0.97) translateY(0)}
-        .btn-primary:disabled{opacity:0.4;pointer-events:none;filter:none}
-        .btn-primary::after{display:none}
-        .btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.1) 50%,transparent 60%);transform:translateX(-100%);transition:transform 0.6s}
-        .btn:hover::after{transform:translateX(100%)}
-        .btn-stars{background:linear-gradient(135deg,#f59e0b,#d97706);color:#1c1000;box-shadow:0 4px 24px var(--star-glow),0 1px 4px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-weight:700;font-size:14px}
-        .btn-stars:hover{box-shadow:0 6px 32px rgba(245,158,11,0.4),0 1px 4px rgba(0,0,0,0.3);transform:translateY(-1px)}
-        .btn-stars:active{transform:scale(0.97) translateY(0)}
-        .btn-geo{background:linear-gradient(135deg,var(--geo),#059669);color:#fff;box-shadow:0 4px 24px var(--geo-glow);display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;font-weight:700;font-size:14px}
-        .btn-geo:hover{box-shadow:0 6px 32px rgba(16,185,129,0.4);transform:translateY(-1px)}
-        .btn-geo:active{transform:scale(0.97)}
-        .star-icon{font-size:18px;filter:drop-shadow(0 0 4px rgba(251,191,36,0.6));animation:starPulse 2s ease-in-out infinite}
-        @keyframes starPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
-        /* Capsule Type Tabs */
-        .capsule-type-tabs{display:flex;background:rgba(255,255,255,0.05);padding:4px;border-radius:14px;margin-bottom:20px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
-        .capsule-type-tab{flex:1;padding:10px 4px;border-radius:10px;border:none;background:transparent;color:var(--text-dim);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
-        .capsule-type-tab .tab-icon{font-size:20px;transition:transform 0.3s}
-        .capsule-type-tab:hover .tab-icon{transform:scale(1.1)}
-        .capsule-type-tab:hover{color:var(--text)}
-        .capsule-type-tab.active{background:rgba(255,255,255,0.15);color:#fff;border:0.5px solid rgba(255,255,255,0.1);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
-        .capsule-type-tab[data-type="group"].active{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.1);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
-        .capsule-type-tab[data-type="geo"].active{background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.1);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
-        /* Settings Card */
-        .settings-card{background:var(--surface);border:0.5px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);text-align:left;box-shadow:0 4px 24px -8px rgba(0,0,0,0.5)}
-        .settings-card .card-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-        .settings-card .card-row+.card-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-        .settings-card label{font-size:13px;font-weight:500;color:var(--text-dim);white-space:nowrap}
-        .settings-card input[type="number"]{width:90px;padding:10px 12px;border-radius:10px;border:0.5px solid var(--border);background:rgba(255,255,255,0.05);color:var(--text);font-size:14px;text-align:center;font-family:inherit;outline:none}
-        .settings-card input[type="number"]:focus{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.08)}
-        /* Group Create */
-        .star-input-wrap{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.025);border:1px solid var(--border);border-radius:14px;padding:6px 6px 6px 16px;transition:all 0.3s}
-        .star-input-wrap:focus-within{border-color:var(--star);box-shadow:0 0 0 3px var(--star-glow)}
-        .star-input-wrap input{border:none!important;background:transparent!important;box-shadow:none!important;padding:8px 0;font-size:28px;font-weight:800;width:100px;text-align:center;color:var(--star);outline:none}
-        .star-input-wrap .star-label{font-size:20px;font-weight:700;color:var(--star);white-space:nowrap}
-        /* Geo Create */
-        .geo-fetch-btn{width:100%;padding:14px;border-radius:14px;border:2px dashed var(--geo);background:rgba(16,185,129,0.04);color:var(--geo);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px}
-        .geo-fetch-btn:hover{border-color:#34d399;background:rgba(16,185,129,0.08);box-shadow:0 0 20px var(--geo-glow)}
-        .geo-fetch-btn.fetching{opacity:0.6;pointer-events:none;animation:pulse 1.5s ease-in-out infinite}
-        .geo-coords{display:flex;gap:8px;margin-bottom:10px}
-        .geo-coords input{flex:1;text-align:center;font-size:13px!important;padding:10px 8px!important;font-variant-numeric:tabular-nums}
-        /* Leaflet map overrides */
-        .geo-map-wrap{border-radius:16px;overflow:hidden;border:1px solid rgba(16,185,129,0.15);margin-bottom:10px;position:relative}
-        .geo-map-wrap .leaflet-container{height:220px;width:100%;z-index:1;background:#0a0f15!important}
-        .geo-map-wrap .leaflet-control-zoom a{background:rgba(15,18,25,0.95)!important;color:#f4f4f5!important;border-color:rgba(255,255,255,0.08)!important}
-        .geo-map-wrap .leaflet-control-attribution{display:none}
-        .geo-search-wrap{position:relative;margin-bottom:8px}
-        .geo-search-wrap input{width:100%;padding:12px 14px 12px 40px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:all 0.3s}
-        .geo-search-wrap input:focus{border-color:var(--geo);box-shadow:0 0 0 3px var(--geo-glow)}
-        .geo-search-wrap .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;opacity:0.5}
-        .geo-search-results{position:absolute;top:100%;left:0;right:0;background:rgba(15,18,25,0.98);border:1px solid var(--border);border-radius:14px;max-height:180px;overflow-y:auto;z-index:50;backdrop-filter:blur(20px);box-shadow:0 12px 40px rgba(0,0,0,0.5);display:none}
-        .geo-search-results .geo-result-item{padding:12px 14px;cursor:pointer;font-size:13px;color:var(--text-dim);text-align:left;border-bottom:1px solid rgba(255,255,255,0.03);transition:all 0.15s}
-        .geo-search-results .geo-result-item:hover{background:rgba(16,185,129,0.06);color:var(--text)}
-        .geo-search-results .geo-result-item:last-child{border-bottom:none}
-        /* Model Selector */
-        .model-selector{display:flex;background:rgba(255,255,255,0.05);padding:4px;border-radius:14px;margin-bottom:20px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
-        .model-option{flex:1;padding:10px 4px;border-radius:10px;border:none;background:transparent;color:var(--text-dim);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
-        .model-option .model-icon{font-size:20px;transition:transform 0.3s}
-        .model-option:hover .model-icon{transform:scale(1.1)}
-        .model-option:hover{color:var(--text)}
-        .model-option.active{background:rgba(255,255,255,0.15);color:#fff;border:0.5px solid rgba(255,255,255,0.1);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
-        /* Group Drop View */
-        .group-drop-card{background:var(--surface);border:1px solid rgba(245,158,11,0.15);border-radius:16px;padding:16px;margin-top:12px;text-align:left;animation:fadeSlideUp 0.5s ease}
-        .group-drop-card .card-title{font-weight:700;font-size:13px;color:var(--star);margin-bottom:10px;display:flex;align-items:center;gap:6px}
-        .progress-bar-wrap{background:rgba(255,255,255,0.04);border-radius:12px;height:14px;overflow:hidden;margin-bottom:8px;position:relative}
-        .progress-bar-fill{height:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:12px;transition:width 0.5s cubic-bezier(0.4,0,0.2,1);min-width:2%}
-        .progress-bar-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:20px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3));border-radius:0 12px 12px 0}
-        .progress-text{display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);font-weight:500}
-        .progress-text strong{color:var(--star)}
-        .contributor-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-        .contributor-pill{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--star);font-weight:500}
-        /* Geo View */
-        .geo-view-card{background:var(--surface);border:1px solid rgba(16,185,129,0.15);border-radius:16px;padding:16px;margin-top:12px;text-align:center;animation:fadeSlideUp 0.5s ease}
-        .geo-view-card .card-title{font-weight:700;font-size:13px;color:var(--geo);margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px}
-        .distance-display{font-size:36px;font-weight:900;letter-spacing:-1px;color:var(--geo);margin-bottom:4px;font-variant-numeric:tabular-nums}
-        .distance-label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
-        .distance-sub{font-size:12px;color:var(--text-dim)}
-        .geo-status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--danger);margin-right:4px;animation:dotPulse 1.5s ease-in-out infinite}
-        .geo-status-dot.near{background:var(--star);animation-duration:0.5s}
-        .geo-status-dot.unlocked{background:var(--success);animation:none}
-        /* Badges */
-        .capsule-type-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-left:8px}
-        .capsule-type-badge.group{background:rgba(245,158,11,0.1);color:var(--star);border:1px solid rgba(245,158,11,0.2)}
-        .capsule-type-badge.geo{background:rgba(16,185,129,0.1);color:var(--geo);border:1px solid rgba(16,185,129,0.2)}
-        .model-container{width:100%;height:280px;margin:12px 0 16px;position:relative;border-radius:20px;overflow:hidden;animation:float 4s ease-in-out infinite}
-        .app-glow{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.15;background:conic-gradient(from 0deg,transparent,rgba(6,182,212,0.15),transparent,rgba(139,92,246,0.1),transparent);animation:glowRotate 10s linear infinite;filter:blur(60px)}
-        @keyframes glowRotate{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-        model-viewer{width:100%;height:100%;--poster-color:transparent;outline:none;position:relative;z-index:1;transition:filter 0.8s ease}
-        model-viewer.zooming{filter:brightness(0.3) blur(2px)}
-        .reveal-section{padding:0;margin-top:-8px;animation:fadeSlideUp 0.5s cubic-bezier(0.4,0,0.2,1)}
-        .reveal-overlay{display:flex;flex-direction:column;align-items:center;gap:4px}
-        .reveal-title{font-size:22px;font-weight:900;letter-spacing:-1px;background:linear-gradient(135deg,#22c55e,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:0;animation:titlePop 0.6s cubic-bezier(0.68,-0.55,0.27,1.55)}
-        @keyframes titlePop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
-        .reveal-sub{color:var(--text-dim);font-size:12px;margin-bottom:10px;font-weight:500}
-        .reveal-btn{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;padding:14px 36px;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 0 32px rgba(34,197,94,0.3),0 4px 16px rgba(0,0,0,0.4);transition:all 0.3s;font-family:inherit;animation:revealPulse 2s ease-in-out infinite;letter-spacing:0.02em}
-        @keyframes revealPulse{0%,100%{box-shadow:0 0 32px rgba(34,197,94,0.3),0 4px 16px rgba(0,0,0,0.4)}50%{box-shadow:0 0 48px rgba(34,197,94,0.5),0 4px 24px rgba(34,197,94,0.3)}}
-        .reveal-btn:hover{transform:scale(1.04)}.reveal-btn:active{transform:scale(0.95)}
-        .dots-pulse .dots::after{content:'';animation:dots 1.2s steps(4,end) infinite}
-        @keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:''}}
-        .secret-popup{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;background:rgba(3,5,10,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:20px 16px;animation:popFadeIn 0.4s ease}
-        @keyframes popFadeIn{from{opacity:0}to{opacity:1}}
-        .secret-popup-card{background:rgba(3,5,10,0.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid var(--border);border-radius:20px;padding:24px 18px 18px;text-align:left;width:100%;max-width:420px;max-height:62vh;overflow-y:auto;box-shadow:0 0 60px rgba(6,182,212,0.15),0 16px 48px rgba(0,0,0,0.6);animation:popOut 0.6s 0.1s cubic-bezier(0.68,-0.55,0.27,1.55) both}
-        @keyframes popOut{0%{transform:scale(0) rotate(-8deg);opacity:0}50%{transform:scale(1.06) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0deg);opacity:1}}
-        .secret-popup-card h4{font-weight:800;font-size:18px;margin:0 0 12px;color:#22c55e;display:flex;align-items:center;gap:8px}
-        .secret-popup .secret-close{position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text-dim);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:201;transition:all 0.2s}
-        .secret-popup .secret-close:hover{background:rgba(255,255,255,0.12);color:#fff;transform:scale(1.05)}
-        .popup-footer{max-width:420px;width:100%;padding:0 4px;animation:fadeSlideUp 0.5s 0.3s cubic-bezier(0.4,0,0.2,1) both}
-        .popup-reactions{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:10px 0 14px}
-        .popup-actions{display:flex;gap:10px;justify-content:center}
-        .popup-action-btn{flex:1;max-width:180px;padding:12px 16px;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.25s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:6px}
-        .popup-action-btn:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);transform:translateY(-1px)}
-        .popup-action-btn.accent{border-color:var(--accent);background:rgba(6,182,212,0.08);color:var(--accent-bright)}.popup-action-btn.accent:hover{box-shadow:0 0 20px var(--accent-glow)}
-        .safe-flash{position:fixed;inset:0;background:white;opacity:0;pointer-events:none;z-index:100;transition:opacity 0.15s ease}
-        .loading-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;transition:opacity 0.4s ease;pointer-events:none}
-        .loading-overlay.hidden{opacity:0}
-        .spinner{width:48px;height:48px;border:3px solid rgba(255,255,255,0.06);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;box-shadow:0 0 20px var(--accent-glow)}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .loading-text{color:var(--text-dim);font-size:12px;font-weight:500;margin-top:14px;letter-spacing:0.05em;animation:pulse 2s ease-in-out infinite}
-        @keyframes pulse{0%,100%{opacity:0.5}50%{opacity:1}}
-        .timer-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:18px 20px 20px;margin-bottom:0;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:relative;overflow:hidden}
-        .timer-wrapper::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)}
-        .timer-label{color:var(--text-dim);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
-        .timer-status{display:inline-flex;align-items:center;gap:6px;margin-bottom:8px}
-        .status-dot{width:6px;height:6px;border-radius:50%;background:var(--danger);animation:dotPulse 1.5s ease-in-out infinite;box-shadow:0 0 8px rgba(239,68,68,0.5)}
-        @keyframes dotPulse{0%,100%{opacity:1;box-shadow:0 0 8px rgba(239,68,68,0.5)}50%{opacity:0.4;box-shadow:0 0 2px rgba(239,68,68,0.2)}}
-        .timer{font-size:44px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-1px;background:linear-gradient(180deg,#fff 0%,#d4d4d8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 12px rgba(255,255,255,0.15));line-height:1}
-        
-        .secret-content{white-space:pre-wrap;line-height:1.7;margin:0;color:#d4d4d8;font-size:15px}
-        .secret-photo{max-width:100%;border-radius:12px;margin-top:8px}
-        .secret-photo.blurred{filter:blur(50px);transform:scale(1.08);pointer-events:none;user-select:none}
-        .blur-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:#fff;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;z-index:2;white-space:nowrap;pointer-events:none}
-        .photo-blur-wrapper{position:relative;display:inline-block;max-width:100%}
-        
-        .toggle-switch{position:relative;width:44px;height:26px;flex-shrink:0}
-        .toggle-switch input{display:none}
-        .toggle-slider{position:absolute;inset:0;background:rgba(255,255,255,0.1);border-radius:26px;cursor:pointer;transition:all 0.3s}
-        .toggle-slider::before{content:'';position:absolute;left:3px;top:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:all 0.3s}
-        .toggle-switch input:checked+.toggle-slider{background:var(--accent)}
-        .toggle-switch input:checked+.toggle-slider::before{transform:translateX(18px)}
-        .secret-audio{width:100%;margin-top:8px;border-radius:12px}
-        @keyframes fadeSlideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-        /* Media Type Tabs */
-        .media-type-tabs{display:flex;background:rgba(255,255,255,0.05);padding:4px;border-radius:14px;margin-bottom:20px;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur)}
-        .media-type-tab{flex:1;padding:10px 4px;border-radius:10px;border:none;background:transparent;color:var(--text-dim);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px}
-        .media-type-tab.active{background:rgba(255,255,255,0.15);color:#fff;border:0.5px solid rgba(255,255,255,0.1);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
-        .media-type-tab:hover:not(.active){color:var(--text)}
-        .passcode-section{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:16px;backdrop-filter:blur(20px)}
-        .passcode-title{font-weight:700;font-size:14px;margin-bottom:12px;color:var(--text-dim)}
-        .passcode-inputs{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
-        .passcode-digit{width:48px;height:56px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.03);color:var(--text);font-size:24px;font-weight:700;text-align:center;font-family:inherit;outline:none;transition:all 0.25s}
-        .passcode-digit:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow);background:rgba(6,182,212,0.06)}
-        .passcode-attempts{color:var(--text-dim);font-size:12px;font-weight:500}
-        .passcode-attempts.warn{color:var(--danger)}
-        .btn-passcode{background:linear-gradient(135deg,var(--purple),#7c3aed);color:#fff;box-shadow:0 4px 24px rgba(139,92,246,0.2);margin-top:8px}
-        .reactions-bar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:12px;padding:8px 0}
-        .reaction-btn{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:18px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:4px;font-family:inherit;color:var(--text)}
-        .reaction-btn:hover{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.15);transform:scale(1.05)}
-        .reaction-btn:active{transform:scale(0.9)}
-        .reaction-count{font-size:12px;font-weight:600;color:var(--text-dim);min-width:16px}
-        .reaction-btn.has-reaction{background:rgba(6,182,212,0.08);border-color:var(--accent)}
-        .photo-preview{width:100%;max-height:160px;object-fit:cover;border-radius:12px;margin-bottom:8px;border:1px solid var(--border)}
-        .voice-section{display:flex;flex-direction:column;align-items:center;gap:12px}
-        .voice-btn{width:64px;height:64px;border-radius:50%;border:2px solid var(--accent);background:rgba(6,182,212,0.08);color:var(--accent-bright);font-size:28px;cursor:pointer;transition:all 0.3s;display:flex;align-items:center;justify-content:center;box-shadow:0 0 24px var(--accent-glow)}
-        .voice-btn.recording{border-color:var(--danger);background:rgba(239,68,68,0.1);color:var(--danger);box-shadow:0 0 24px rgba(239,68,68,0.3);animation:recPulse 1s ease-in-out infinite}
-        @keyframes recPulse{0%,100%{box-shadow:0 0 24px rgba(239,68,68,0.3)}50%{box-shadow:0 0 40px rgba(239,68,68,0.6)}}
-        .voice-timer{font-size:14px;color:var(--text-dim);font-variant-numeric:tabular-nums}
-        .voice-preview audio{width:100%;margin-top:8px;border-radius:12px}
-        .file-upload{position:relative}
-        .file-upload input{display:none}
-        .file-upload-label{display:block;padding:14px 16px;border-radius:14px;border:2px dashed var(--border);background:rgba(255,255,255,0.015);color:var(--text-dim);font-size:14px;cursor:pointer;transition:all 0.3s;text-align:center}
-        .file-upload-label:hover{border-color:var(--accent);color:var(--text);background:rgba(6,182,212,0.03)}
-        /* --- Wizard Steps --- */
-        .home-view{display:flex;flex-direction:column;gap:16px;animation:stepIn 0.4s cubic-bezier(0.22,0.9,0.32,1)}
-        .create-step{display:none;flex-direction:column;animation:stepIn 0.4s cubic-bezier(0.22,0.9,0.32,1)}
-        .create-step.active{display:flex}
-        @keyframes stepIn{from{opacity:0;transform:translateY(20px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-        .step-dots{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
-        .step-dot{width:8px;height:8px;border-radius:4px;background:rgba(255,255,255,0.15);transition:all 0.3s ease}
-        .step-dot.active{background:var(--accent);width:24px;box-shadow:0 0 10px var(--accent-glow)}
-        .step-nav{display:flex;gap:10px;margin-top:16px}
-        .step-nav .btn{flex:1;margin-top:0}
-        .btn-secondary{background:rgba(255,255,255,0.05);color:var(--text);border:1px solid var(--border)}
-        .btn-secondary:hover{background:rgba(255,255,255,0.1)}
-        .home-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:center;backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);box-shadow:0 4px 24px -8px rgba(0,0,0,0.5)}
-        .home-card i{font-size:32px;color:var(--accent);margin-bottom:12px;display:block;font-style:normal}
-        @media(max-width:380px){.brand{font-size:26px}.timer{font-size:36px}.model-container{height:240px}.passcode-digit{width:42px;height:50px;font-size:20px}}
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="bg-dots"></div>
     <div class="app-glow"></div>
     <div class="safe-flash" id="safe-flash"></div>
+
     <div class="secret-popup hidden" id="secret-popup">
         <button class="secret-close" onclick="closeSecret()">✕</button>
         <div class="secret-popup-card">
-            <h4>🔓 Секрет раскрыт!</h4>
+            <h4>🔓 Секрет открыт!</h4>
             <div id="secret-content"></div>
         </div>
         <div class="popup-footer">
@@ -251,19 +37,23 @@
             </div>
         </div>
     </div>
+
     <div class="content-wrap">
-        <!-- ГЛАВНЫЙ ЭКРАН -->
         <div id="home-view" class="hidden">
             <div class="brand">Капсула времени</div>
             <p class="subtitle">Сохрани момент в будущем или спрячь его на карте</p>
             <div class="home-card">
                 <i>⏳</i>
                 <h3 style="margin:0 0 8px;font-weight:800;">Твои секреты</h3>
-                <p style="font-size:13px;color:var(--text-dim);margin:0;" id="my-capsules-text">У тебя пока нет созданных капсул. Сделай первый шаг!</p>
+                <p style="font-size:13px;color:var(--text-dim);margin:0;" id="my-capsules-text">
+                    У тебя пока нет созданных капсул. Сделай первый шаг!
+                </p>
             </div>
-            <button class="btn btn-primary" onclick="startCreationFlow()" style="margin-top:10px;padding:18px;font-size:18px;">✨ Создать секрет</button>
+            <button class="btn btn-primary" onclick="startCreationFlow()" style="margin-top:10px;padding:18px;font-size:18px;">
+                ✨ Создать секрет
+            </button>
         </div>
-        <!-- ПОШАГОВОЕ СОЗДАНИЕ -->
+
         <div id="create-view" class="hidden">
             <div class="step-dots" id="create-dots">
                 <div class="step-dot active"></div>
@@ -271,7 +61,7 @@
                 <div class="step-dot"></div>
                 <div class="step-dot"></div>
             </div>
-            <!-- ШАГ 1: МОДЕЛЬ -->
+
             <div class="create-step active" id="step-1">
                 <h2 style="margin:0 0 16px;">Внешний вид</h2>
                 <p class="subtitle">Выбери, как будет выглядеть капсула</p>
@@ -279,95 +69,130 @@
                     <model-viewer id="model-preview" src="/safe.glb" auto-rotate camera-controls disable-zoom shadow-intensity="1" interaction-prompt="none" environment-image="neutral" exposure="0.9" style="width:100%;height:100%;"></model-viewer>
                 </div>
                 <div class="model-selector" id="model-selector">
-                <button class="model-option active" data-model="safe" onclick="switchModel('safe')"><span class="model-icon">🔒</span> Сейф</button>
-                <button class="model-option" data-model="love" onclick="switchModel('love')"><span class="model-icon">❤️</span> Бокс любви</button>
-                <button class="model-option" data-model="scifi" onclick="switchModel('scifi')"><span class="model-icon">🚀</span> Sci-Fi</button>
+                    <button class="model-option active" data-model="safe" onclick="switchModel('safe')"><span class="model-icon">🔒</span> Сейф</button>
+                    <button class="model-option" data-model="love" onclick="switchModel('love')"><span class="model-icon">❤️</span> Бокс любви</button>
+                    <button class="model-option" data-model="scifi" onclick="switchModel('scifi')"><span class="model-icon">🚀</span> Sci-Fi</button>
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="cancelCreation()">Отмена</button>
+                    <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(2)">Далее →</button>
+                </div>
             </div>
-            <div class="step-nav">
-                <button class="btn btn-secondary" onclick="cancelCreation()">Отмена</button>
-                <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(2)">Далее →</button>
-            </div>
-        </div>
-        <!-- ШАГ 2: КОНТЕНТ -->
-        <div class="create-step" id="step-2">
-            <h2 style="margin:0 0 16px;">Что прячем?</h2>
-            <div class="media-type-tabs">
-                <button class="media-type-tab active" onclick="switchMediaType('text')" id="tab-text">📝 Текст</button>
-                <button class="media-type-tab" onclick="switchMediaType('photo')" id="tab-photo">📸 Фото</button>
-                <button class="media-type-tab" onclick="switchMediaType('voice')" id="tab-voice">🎤 Голос</button>
-            </div>
-            <div class="input-group" id="group-text"><textarea id="text-input" rows="4" placeholder="Напиши свой секрет здесь..."></textarea></div>
-            <div class="input-group hidden" id="group-photo">
-                <div class="file-upload"><input type="file" id="photo-input" accept="image/*" onchange="previewPhoto(event)"><label for="photo-input" class="file-upload-label" id="photo-label">📎 Выбери фото</label></div>
-                <img id="photo-preview-img" class="photo-preview hidden" alt="Preview">
-            </div>
-            <div class="input-group hidden" id="group-voice">
-                <div class="voice-section"><button class="voice-btn" id="voice-btn" onclick="toggleRecording()">🎤</button><span class="voice-timer" id="voice-timer">00:00</span><audio id="voice-preview-audio" class="hidden" controls></audio></div>
-            </div>
-            <div class="step-nav">
-                <button class="btn btn-secondary" onclick="prevStep(1)">← Назад</button>
-                <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(3)">Далее →</button>
-            </div>
-        </div>
-        <!-- ШАГ 3: УСЛОВИЯ -->
-        <div class="create-step" id="step-3">
-            <h2 style="margin:0 0 16px;">Условия открытия</h2>
-            <div class="capsule-type-tabs">
-                <button class="capsule-type-tab active" data-type="personal" onclick="switchCapsuleType('personal')"><span class="tab-icon">👤</span> Личная</button>
-                <button class="capsule-type-tab" data-type="group" onclick="switchCapsuleType('group')"><span class="tab-icon">👥</span> Групповая</button>
-                <button class="capsule-type-tab" data-type="geo" onclick="switchCapsuleType('geo')"><span class="tab-icon">📍</span> Гео</button>
-            </div>
-            <div class="input-group" id="group-timer">
-                <div class="custom-select" id="timer-select">
-                    <button class="custom-select-trigger" id="timer-trigger" onclick="toggleTimerDropdown(event)"><span>🔒</span> <span id="timer-label">Запереть на 24 часа</span></button>
-                    <div class="custom-select-dropdown hidden" id="timer-dropdown">
-                        <div class="custom-option" data-value="1" data-label="🔒 Запереть на 1 час" onclick="selectTimerOption(this)">🕐 1 час</div>
-                        <div class="custom-option selected" data-value="24" data-label="🔒 Запереть на 24 часа" onclick="selectTimerOption(this)">🕐 24 часа</div>
-                        <div class="custom-option" data-value="168" data-label="🔒 Запереть на 1 неделю" onclick="selectTimerOption(this)">📅 1 неделя</div>
-                        <div class="custom-option" data-value="720" data-label="🔒 Запереть на 1 месяц" onclick="selectTimerOption(this)">📅 1 месяц</div>
+
+            <div class="create-step" id="step-2">
+                <h2 style="margin:0 0 16px;">Что прячем?</h2>
+                <div class="media-type-tabs">
+                    <button class="media-type-tab active" onclick="switchMediaType('text')" id="tab-text">📝 Текст</button>
+                    <button class="media-type-tab" onclick="switchMediaType('photo')" id="tab-photo">📸 Фото</button>
+                    <button class="media-type-tab" onclick="switchMediaType('voice')" id="tab-voice">🎤 Голос</button>
+                </div>
+                <div class="input-group" id="group-text">
+                    <textarea id="text-input" rows="4" placeholder="Напиши свой секрет здесь..."></textarea>
+                </div>
+                <div class="input-group hidden" id="group-photo">
+                    <div class="file-upload">
+                        <input type="file" id="photo-input" accept="image/*" onchange="previewPhoto(event)">
+                        <label for="photo-input" class="file-upload-label" id="photo-label">📎 Выбери фото</label>
+                    </div>
+                    <img id="photo-preview-img" class="photo-preview hidden" alt="Preview">
+                </div>
+                <div class="input-group hidden" id="group-voice">
+                    <div class="voice-section">
+                        <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">🎤</button>
+                        <span class="voice-timer" id="voice-timer">00:00</span>
+                        <audio id="voice-preview-audio" class="hidden" controls></audio>
                     </div>
                 </div>
-            </div>
-            <div class="input-group hidden" id="group-stars-section">
-                <div class="star-input-wrap"><span style="font-size:14px;color:var(--text-dim)">Цель сбора:</span><input type="number" id="goal-stars" value="500" min="10" max="99999" step="10"><span class="star-label">⭐</span></div>
-            </div>
-            <div class="input-group hidden" id="geo-section-create">
-                <div class="geo-search-wrap">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="geo-search-input" placeholder="Поиск места (кафе, адрес...)" oninput="searchGeoPlace()" autocomplete="off">
-                    <div class="geo-search-results" id="geo-search-results"></div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(1)">← Назад</button>
+                    <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(3)">Далее →</button>
                 </div>
-                <button class="geo-fetch-btn" id="geo-fetch-btn" onclick="fetchLocation()">📍 Определить местоположение</button>
-                <div class="geo-coords"><input type="text" id="geo-lat" placeholder="Широта" readonly><input type="text" id="geo-lng" placeholder="Долгота" readonly></div>
-                <div class="settings-card" style="margin-bottom:0"><div class="card-row"><label>Радиус (метров)</label><input type="number" id="geo-radius" value="50" min="5" max="5000" step="5"></div></div>
             </div>
-            <div class="step-nav">
-                <button class="btn btn-secondary" onclick="prevStep(2)">← Назад</button>
-                <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(4)">Далее →</button>
-            </div>
-        </div>
-        <!-- ШАГ 4: БЕЗОПАСНОСТЬ -->
-        <div class="create-step" id="step-4">
-            <h2 style="margin:0 0 16px;">Безопасность</h2>
-            <div class="settings-card" id="hack-settings">
-                <div class="card-row">
-                    <label>Код-пароль</label>
-                    <input type="text" id="passcode-input" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*" style="width:90px;text-align:center">
+
+            <div class="create-step" id="step-3">
+                <h2 style="margin:0 0 16px;">Условия открытия</h2>
+                <div class="capsule-type-tabs">
+                    <button class="capsule-type-tab active" data-type="personal" onclick="switchCapsuleType('personal')"><span class="tab-icon">👤</span> Личная</button>
+                    <button class="capsule-type-tab" data-type="group" onclick="switchCapsuleType('group')"><span class="tab-icon">👥</span> Групповая</button>
+                    <button class="capsule-type-tab" data-type="geo" onclick="switchCapsuleType('geo')"><span class="tab-icon">📍</span> Гео</button>
                 </div>
-                <div class="card-row"><span style="font-size:14px;color:var(--text)">Разрешить взлом</span><label class="toggle-switch"><input type="checkbox" id="allow-hack" checked onchange="toggleHackPrice()"><div class="toggle-slider"></div></label></div>
-                <div class="card-row" id="row-price"><label>Цена взлома (⭐)</label><input type="number" id="hack-price" value="50" min="1" max="999999"></div>
+                <div class="input-group" id="group-timer">
+                    <div class="custom-select" id="timer-select">
+                        <button class="custom-select-trigger" id="timer-trigger" onclick="toggleTimerDropdown(event)"><span>🔒</span> <span id="timer-label">Запереть на 24 часа</span></button>
+                        <div class="custom-select-dropdown hidden" id="timer-dropdown">
+                            <div class="custom-option" data-value="1" data-label="🔒 Запереть на 1 час" onclick="selectTimerOption(this)">🕐 1 час</div>
+                            <div class="custom-option selected" data-value="24" data-label="🔒 Запереть на 24 часа" onclick="selectTimerOption(this)">🕐 24 часа</div>
+                            <div class="custom-option" data-value="168" data-label="🔒 Запереть на 1 неделю" onclick="selectTimerOption(this)">📅 1 неделя</div>
+                            <div class="custom-option" data-value="720" data-label="🔒 Запереть на 1 месяц" onclick="selectTimerOption(this)">📅 1 месяц</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group hidden" id="group-stars-section">
+                    <div class="star-input-wrap">
+                        <span style="font-size:14px;color:var(--text-dim)">Цель сбора:</span>
+                        <input type="number" id="goal-stars" value="500" min="10" max="99999" step="10">
+                        <span class="star-label">⭐</span>
+                    </div>
+                </div>
+                <div class="input-group hidden" id="geo-section-create">
+                    <div class="geo-search-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="geo-search-input" placeholder="Поиск места (кафе, адрес...)" oninput="searchGeoPlace()" autocomplete="off">
+                        <div class="geo-search-results" id="geo-search-results"></div>
+                    </div>
+                    <button class="geo-fetch-btn" id="geo-fetch-btn" onclick="fetchLocation()">📍 Определить местоположение</button>
+                    <div class="geo-coords">
+                        <input type="text" id="geo-lat" placeholder="Широта" readonly>
+                        <input type="text" id="geo-lng" placeholder="Долгота" readonly>
+                    </div>
+                    <div class="settings-card" style="margin-bottom:0">
+                        <div class="card-row">
+                            <label>Радиус (метров)</label>
+                            <input type="number" id="geo-radius" value="50" min="5" max="5000" step="5">
+                        </div>
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(2)">← Назад</button>
+                    <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(4)">Далее →</button>
+                </div>
             </div>
-            <div class="step-nav">
-                <button class="btn btn-secondary" onclick="prevStep(3)">← Назад</button>
-                <button class="btn btn-primary" onclick="createCapsule()" id="create-btn">Спрятать секрет 🔒</button>
+
+            <div class="create-step" id="step-4">
+                <h2 style="margin:0 0 16px;">Безопасность</h2>
+                <div class="settings-card" id="hack-settings">
+                    <div class="card-row">
+                        <label>Код-пароль</label>
+                        <input type="text" id="passcode-input" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*" style="width:90px;text-align:center">
+                    </div>
+                    <div class="card-row">
+                        <span style="font-size:14px;color:var(--text)">Разрешить взлом</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="allow-hack" checked onchange="toggleHackPrice()">
+                            <div class="toggle-slider"></div>
+                        </label>
+                    </div>
+                    <div class="card-row" id="row-price">
+                        <label>Цена взлома (⭐)</label>
+                        <input type="number" id="hack-price" value="50" min="1" max="999999">
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(3)">← Назад</button>
+                    <button class="btn btn-primary" onclick="createCapsule()" id="create-btn">Спрятать секрет 🔒</button>
+                </div>
             </div>
         </div>
-        </div>
+
         <div id="view-view" class="hidden">
             <div class="model-container" id="model-container">
                 <model-viewer id="safe-model" auto-rotate camera-controls disable-zoom shadow-intensity="1" interaction-prompt="none" environment-image="neutral" exposure="0.9"></model-viewer>
-                <div class="loading-overlay" id="loading-overlay"><div class="spinner"></div><div class="loading-text">Загрузка сейфа</div></div>
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Загрузка сейфа</div>
+                </div>
             </div>
+
             <div class="reveal-section hidden" id="reveal-section">
                 <div class="reveal-overlay">
                     <div class="reveal-title">Время вышло! 🔓</div>
@@ -375,14 +200,22 @@
                     <button class="reveal-btn" onclick="revealSecret()">Раскрыть секрет</button>
                 </div>
             </div>
+
             <div id="status-container">
                 <div class="timer-wrapper" id="timer-card">
                     <div class="timer-label" id="timer-label-text">Сейф откроется через</div>
-                    <div class="timer-status"><div class="status-dot"></div><span style="color:var(--text-dim);font-size:11px;font-weight:500" id="timer-status-text">ЗАКРЫТ</span><span class="capsule-type-badge hidden" id="type-badge"></span></div>
+                    <div class="timer-status">
+                        <div class="status-dot"></div>
+                        <span style="color:var(--text-dim);font-size:11px;font-weight:500" id="timer-status-text">ЗАКРЫТ</span>
+                        <span class="capsule-type-badge hidden" id="type-badge"></span>
+                    </div>
                     <div class="timer" id="timer">--:--:--</div>
                 </div>
-                <button id="hack-btn" class="btn btn-stars hidden" onclick="hackCapsule()"><span class="star-icon">⭐</span> Взломать досрочно (50 Stars)</button>
+                <button id="hack-btn" class="btn btn-stars hidden" onclick="hackCapsule()">
+                    <span class="star-icon">⭐</span> Взломать досрочно (50 Stars)
+                </button>
             </div>
+
             <div class="group-drop-card hidden" id="group-drop-card">
                 <div class="card-title">👥 Групповой сбор <span style="font-weight:400;font-size:11px">— скидываемся на взлом</span></div>
                 <div class="progress-bar-wrap"><div class="progress-bar-fill" id="group-progress-fill" style="width:0%"></div></div>
@@ -390,14 +223,21 @@
                 <div class="contributor-list" id="contributor-list"></div>
                 <button class="btn btn-stars" onclick="contributeStars()" id="contribute-btn"><span class="star-icon">⭐</span> Внести 50 Stars</button>
             </div>
+
             <div class="geo-view-card hidden" id="geo-view-card">
                 <div class="card-title">📍 Гео-капсула <span style="font-weight:400;font-size:11px">— доберись до места</span></div>
-                <div class="geo-map-wrap" id="geo-map-wrap"><div id="geo-map" style="height:220px"></div></div>
+                <div class="geo-map-wrap" id="geo-map-wrap">
+                    <div id="geo-map" style="height:220px"></div>
+                </div>
                 <div class="distance-display" id="geo-distance">---</div>
                 <div class="distance-label">метров до цели</div>
-                <div class="distance-sub"><span class="geo-status-dot" id="geo-status-dot"></span><span id="geo-status-text">Ожидание геопозиции...</span></div>
+                <div class="distance-sub">
+                    <span class="geo-status-dot" id="geo-status-dot"></span>
+                    <span id="geo-status-text">Ожидание геопозиции...</span>
+                </div>
                 <button class="btn btn-geo hidden" onclick="unlockGeo()" id="geo-unlock-btn">🔓 Открыть сейф</button>
             </div>
+
             <div id="passcode-section" class="passcode-section hidden">
                 <div class="passcode-title">🔢 Введи 4-значный пароль</div>
                 <div class="passcode-inputs">
@@ -409,6 +249,7 @@
                 <div class="passcode-attempts" id="passcode-attempts-text"></div>
                 <button class="btn btn-passcode" onclick="tryPasscode()" id="passcode-submit-btn">Проверить</button>
             </div>
+
             <div class="reactions-bar" id="reactions-bar">
                 <button class="reaction-btn" onclick="sendReaction('👀')">👀 <span class="reaction-count" id="rc-👀">0</span></button>
                 <button class="reaction-btn" onclick="sendReaction('😈')">😈 <span class="reaction-count" id="rc-😈">0</span></button>
@@ -416,535 +257,9 @@
                 <button class="reaction-btn" onclick="sendReaction('🔥')">🔥 <span class="reaction-count" id="rc-🔥">0</span></button>
                 <button class="reaction-btn" onclick="sendReaction('💎')">💎 <span class="reaction-count" id="rc-💎">0</span></button>
             </div>
-
         </div>
     </div>
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();tg.expand();tg.setHeaderColor('#03050a');tg.setBackgroundColor('#03050a');
-        const BOT_USERNAME = "KapsulaVremeni_bot";
-        const startParam = tg.initDataUnsafe?.start_param;
-        let currentCapsuleId = null;
-        let currentMediaType = 'text';
-        let currentCapsuleType = 'personal';
-        let currentModelType = 'safe';
-        let selectedHours = 24;
-        let photoBase64 = null;
-        let voiceBase64 = null;
-        let audioBlob = null;
-        let mediaRecorder = null;
-        let voiceStartTime = 0;
-        let voiceTimerInterval = null;
-        let timerInterval;
-        let geoWatchId = null;
-        let lastGeoPos = null;
-        let geoMap = null;
-        let geoMarker = null;
-        let userMarker = null;
-        let geoSearchTimeout = null;
-        let capsuleData = null;
-        let currentStep = 1;
-        if (startParam) {currentCapsuleId = startParam;document.getElementById('view-view').classList.remove('hidden');loadCapsule(currentCapsuleId)}
-        else {document.getElementById('home-view').classList.remove('hidden');loadMyCapsules()}
-        // --- Wizard Functions ---
-        function startCreationFlow() {
-            document.getElementById('home-view').classList.add('hidden');
-            document.getElementById('create-view').classList.remove('hidden');
-            showStep(1);
-            tg.BackButton.show();
-            tg.BackButton.onClick(handleTgBack);
-            tg.HapticFeedback.impactOccurred('light');
-        }
-        function cancelCreation() {
-            document.getElementById('create-view').classList.add('hidden');
-            document.getElementById('home-view').classList.remove('hidden');
-            tg.BackButton.hide();
-            tg.BackButton.offClick(handleTgBack);
-        }
-        function handleTgBack() {
-            if (currentStep > 1) { prevStep(currentStep - 1); }
-            else { cancelCreation(); }
-        }
-        function showStep(step) {
-            document.querySelectorAll('.create-step').forEach(el => el.classList.remove('active'));
-            document.getElementById('step-' + step).classList.add('active');
-            const dots = document.querySelectorAll('.step-dot');
-            dots.forEach((dot, index) => { dot.classList.toggle('active', index === (step - 1)); });
-            currentStep = step;
-            tg.HapticFeedback.selectionChanged();
-        }
-        function nextStep(targetStep) {
-            if (currentStep === 2) {
-                if (currentMediaType === 'text' && !document.getElementById('text-input').value.trim()) return tg.showAlert('Напиши секрет перед тем как идти дальше!');
-                if (currentMediaType === 'photo' && !photoBase64) return tg.showAlert('Прикрепи фото!');
-                if (currentMediaType === 'voice' && !voiceBase64) return tg.showAlert('Запиши голосовое!');
-            }
-            if (currentStep === 3 && currentCapsuleType === 'geo') {
-                const lat = parseFloat(document.getElementById('geo-lat').value);
-                if (!lat || lat === 0) return tg.showAlert('Сначала определи местоположение!');
-            }
-            showStep(targetStep);
-        }
-        function prevStep(targetStep) { showStep(targetStep); }
-        async function loadMyCapsules() {
-            try {
-                const hdrs = {};
-                if (tg.initData) hdrs['X-Telegram-Init-Data'] = tg.initData;
-                const res = await fetch('/api/my', { headers: hdrs });
-                if (!res.ok) return;
-                const capsules = await res.json();
-                if (capsules && capsules.length > 0) {
-                    document.getElementById('my-capsules-text').textContent = 'У тебя ' + capsules.length + ' капсул(а). Создай новую!';
-                }
-            } catch (e) {}
-        }
-        function switchModel(model) {
-            currentModelType = model;
-            document.querySelectorAll('.model-option').forEach(m => m.classList.remove('active'));
-            document.querySelector(`.model-option[data-model="${model}"]`).classList.add('active');
-            const mp = getModelPaths(model);
-            const preview = document.getElementById('model-preview');
-            if (preview) preview.setAttribute('src', mp.closed);
-        }
-        function getModelPaths(modelType) {
-            const models = {
-                'safe': { closed: '/safe.glb', open: '/safe-open.glb' },
-                'love': { closed: '/love_box.glb', open: '/love_box.glb' },
-                'scifi': { closed: '/sci-fi_box.glb', open: '/sci-fi_box.glb' }
-            };
-            return models[modelType] || models['safe'];
-        }
-        function switchCapsuleType(type) {
-            currentCapsuleType = type;
-            document.querySelectorAll('.capsule-type-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`.capsule-type-tab[data-type="${type}"]`).classList.add('active');
-            document.getElementById('group-timer').classList.toggle('hidden', type === 'geo');
-            document.getElementById('group-stars-section').classList.toggle('hidden', type !== 'group');
-            document.getElementById('geo-section-create').classList.toggle('hidden', type !== 'geo');
-            document.getElementById('hack-settings').classList.toggle('hidden', type === 'geo');
-            const btn = document.getElementById('create-btn');
-            if (type === 'group') {btn.textContent = 'Создать групповую капсулу';btn.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)'}
-            else if (type === 'geo') {btn.textContent = 'Закопать гео-капсулу';btn.style.background = 'linear-gradient(135deg,#10b981,#059669)'}
-            else {btn.textContent = 'Спрятать в сейф';btn.style.background = ''}
-        }
-        function toggleTimerDropdown(e) {
-            e.stopPropagation();
-            const dd = document.getElementById('timer-dropdown');
-            if (!dd.classList.contains('hidden')) {closeAllDropdowns();return}
-            closeAllDropdowns();
-            document.getElementById('timer-select').classList.add('open');
-            dd.classList.remove('hidden');
-        }
-        function selectTimerOption(el) {
-            selectedHours = parseInt(el.dataset.value);
-            document.getElementById('timer-label').textContent = el.dataset.label;
-            document.querySelectorAll('#timer-dropdown .custom-option').forEach(o => o.classList.remove('selected'));
-            el.classList.add('selected');
-            closeAllDropdowns();
-        }
-        function closeAllDropdowns() {
-            document.getElementById('timer-select').classList.remove('open');
-            document.getElementById('timer-dropdown').classList.add('hidden');
-        }
-        document.addEventListener('click', closeAllDropdowns);
-        function switchMediaType(type) {
-            currentMediaType = type;
-            document.querySelectorAll('.media-type-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-' + type).classList.add('active');
-            document.getElementById('group-text').classList.toggle('hidden', type !== 'text');
-            document.getElementById('group-photo').classList.toggle('hidden', type !== 'photo');
-            document.getElementById('group-voice').classList.toggle('hidden', type !== 'voice');
-        }
-        function previewPhoto(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                photoBase64 = e.target.result;
-                document.getElementById('photo-preview-img').src = photoBase64;
-                document.getElementById('photo-preview-img').classList.remove('hidden');
-                document.getElementById('photo-label').textContent = '📎 Нажми чтобы заменить фото';
-            };
-            reader.readAsDataURL(file);
-        }
-        async function toggleRecording() {
-            const btn = document.getElementById('voice-btn');
-            const preview = document.getElementById('voice-preview-audio');
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                btn.classList.remove('recording');
-                btn.textContent = '🎤';
-                clearInterval(voiceTimerInterval);
-                return;
-            }
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({audio: true});
-                const chunks = [];
-                mediaRecorder = new MediaRecorder(stream, {mimeType: 'audio/webm'});
-                mediaRecorder.ondataavailable = e => chunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    audioBlob = new Blob(chunks, {type: 'audio/webm'});
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        voiceBase64 = reader.result;
-                        preview.src = voiceBase64;
-                        preview.classList.remove('hidden');
-                    };
-                    reader.readAsDataURL(audioBlob);
-                    stream.getTracks().forEach(t => t.stop());
-                };
-                mediaRecorder.start();
-                btn.classList.add('recording');
-                btn.textContent = '⏹️';
-                voiceStartTime = Date.now();
-                voiceTimerInterval = setInterval(() => {
-                    const elapsed = Math.floor((Date.now() - voiceStartTime) / 1000);
-                    const m = Math.floor(elapsed / 60).toString().padStart(2, '0');
-                    const s = (elapsed % 60).toString().padStart(2, '0');
-                    document.getElementById('voice-timer').textContent = m + ':' + s;
-                }, 200);
-            } catch(e) {
-                tg.showAlert('Нет доступа к микрофону. Разреши запись в настройках.');
-            }
-        }
-        function fetchLocation() {
-            const btn = document.getElementById('geo-fetch-btn');
-            btn.classList.add('fetching');btn.textContent='📍 Определяем...';
-            if(!navigator.geolocation){btn.classList.remove('fetching');btn.textContent='📍 Определить местоположение';return tg.showAlert('Геолокация не поддерживается')}
-            navigator.geolocation.getCurrentPosition(pos=>{document.getElementById('geo-lat').value=pos.coords.latitude.toFixed(6);document.getElementById('geo-lng').value=pos.coords.longitude.toFixed(6);document.getElementById('geo-search-input').value='';btn.classList.remove('fetching');btn.textContent='✅ Готово (ваше местоположение)';tg.HapticFeedback.notificationOccurred('success')},err=>{btn.classList.remove('fetching');btn.textContent='📍 Определить местоположение';tg.showAlert('Не удалось. Разреши доступ в настройках.')},{enableHighAccuracy:true,timeout:10000});
-        }
-        function toggleHackPrice() {
-            const allow = document.getElementById('allow-hack').checked;
-            document.getElementById('row-price').style.opacity = allow?'1':'0.3';
-            document.getElementById('row-price').style.pointerEvents = allow?'all':'none';
-        }
-        async function createCapsule() {
-            const senderId = tg.initDataUnsafe?.user?.id || 123456789;
-            const passcode = document.getElementById('passcode-input').value.replace(/\D/g,'');
-            const allowHack = currentCapsuleType==='geo'?false:document.getElementById('allow-hack').checked;
-            const hackPrice = parseInt(document.getElementById('hack-price').value)||50;
-            const goalStars = parseInt(document.getElementById('goal-stars').value)||500;
-            const geoLat = parseFloat(document.getElementById('geo-lat').value)||0;
-            const geoLng = parseFloat(document.getElementById('geo-lng').value)||0;
-            const geoRadius = parseInt(document.getElementById('geo-radius').value)||50;
-            let content = '';
-            if(currentMediaType==='text'){content=document.getElementById('text-input').value.trim();if(!content)return tg.showAlert("Напиши секрет!")}
-            else if(currentMediaType==='photo'){if(!photoBase64)return tg.showAlert("Выбери фото!");content=photoBase64}
-            else if(currentMediaType==='voice'){if(!voiceBase64)return tg.showAlert("Запиши голосовое!");content=voiceBase64}
-            if(currentCapsuleType==='geo'&&(geoLat===0||geoLng===0))return tg.showAlert("Сначала определи геопозицию!");
-            const btn = document.getElementById('create-btn');
-            btn.disabled=true;const origText=btn.textContent;btn.innerHTML='<span style="opacity:0.7">Создаём...</span>';
-            try{
-                const body={sender_id:senderId,content,hours:currentCapsuleType==='geo'?876000:selectedHours,passcode:passcode||'',media_type:currentMediaType,allow_hack:allowHack,allow_hack_set:true,hack_price:hackPrice,capsule_type:currentCapsuleType,goal_stars:goalStars,geo_lat:geoLat,geo_lng:geoLng,geo_radius:geoRadius,model_type:currentModelType};
-                const hdrs={'Content-Type':'application/json'};if(tg.initData)hdrs['X-Telegram-Init-Data']=tg.initData;
-                const res=await fetch('/api/create',{method:'POST',headers:hdrs,body:JSON.stringify(body)});
-                const data=await res.json();
-                const shareUrl=`https://t.me/${BOT_USERNAME}/app?startapp=${data.id}`;
-                const msg=currentCapsuleType==='group'?'Я создал групповую капсулу! Скидываемся?':currentCapsuleType==='geo'?'Я спрятал гео-капсулу! Найди место.':'Я спрятал капсулу времени! Открой, если дождешься.';
-                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(msg)}`);
-                cancelCreation();
-                document.getElementById('text-input').value='';
-                document.getElementById('passcode-input').value='';
-            }catch(e){tg.showAlert("Ошибка сервера.");btn.disabled=false;btn.innerHTML=origText}
-        }
-async function loadCapsule(id) {
-            try{
-                const oldBlur=document.getElementById('blur-preview');if(oldBlur)oldBlur.remove();
-                if(geoWatchId){navigator.geolocation.clearWatch(geoWatchId);geoWatchId=null}
-                const viewerId=tg.initDataUnsafe?.user?.id;
-                const res=await fetch(`/api/get?id=${id}${viewerId?'&viewer_id='+viewerId:''}`);
-                if(!res.ok)return tg.showAlert("Капсула не найдена.");
-                const data=await res.json();capsuleData=data;clearInterval(timerInterval);
-                const safeModel=document.getElementById('safe-model');
-                const overlay=document.getElementById('loading-overlay');
-                safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});
-                const isOpen=data.is_hacked||(data.capsule_type!=='geo'&&new Date()>=new Date(data.unlock_at));
-                const modelPaths=getModelPaths(data.model_type||'safe');
-                overlay.classList.remove('hidden');safeModel.setAttribute('src',isOpen?modelPaths.open:modelPaths.closed);
-                updateReactions(data.reactions||{});
-                const badge=document.getElementById('type-badge');badge.classList.add('hidden');
-                if(data.capsule_type==='group'){badge.textContent='👥 Группа';badge.className='capsule-type-badge group';badge.classList.remove('hidden')}
-                else if(data.capsule_type==='geo'){badge.textContent='📍 Гео';badge.className='capsule-type-badge geo';badge.classList.remove('hidden')}
-                const ps=document.getElementById('passcode-section');
-                if(data.has_passcode&&!isOpen){ps.classList.remove('hidden');document.getElementById('passcode-attempts-text').textContent=`Осталось попыток: ${data.passcode_attempts||3}`;if(data.passcode_attempts<=0){document.getElementById('passcode-submit-btn').disabled=true;document.getElementById('passcode-attempts-text').textContent='Попытки закончились.';document.getElementById('passcode-attempts-text').classList.add('warn')}}else{ps.classList.add('hidden')}
-                const hackBtn=document.getElementById('hack-btn');
-                const groupCard=document.getElementById('group-drop-card');
-                const geoCard=document.getElementById('geo-view-card');
-                const timerCard=document.getElementById('timer-card');
-                hackBtn.classList.add('hidden');groupCard.classList.add('hidden');geoCard.classList.add('hidden');
-                if(isOpen){timerCard.classList.add('hidden');document.getElementById('reveal-section').classList.remove('hidden');fireConfetti()}
-                else if(data.capsule_type==='group'){timerCard.classList.add('hidden');groupCard.classList.remove('hidden');renderGroupProgress(data)}
-                else if(data.capsule_type==='geo'){timerCard.classList.add('hidden');geoCard.classList.remove('hidden');startGeoWatch(data)}
-                else{timerCard.classList.remove('hidden');document.getElementById('timer-label-text').textContent='Сейф откроется через';document.getElementById('timer-status-text').textContent='ЗАКРЫТ';if(data.allow_hack!==false){hackBtn.classList.remove('hidden');hackBtn.querySelector('.star-icon').nextSibling.textContent=` Взломать досрочно (${data.hack_price||50} Stars)`}}
-                if(data.preview&&data.media_type==='photo'){const c=document.getElementById('model-container');let b=document.getElementById('blur-preview');if(!b){b=document.createElement('div');b.id='blur-preview';b.style.cssText='position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;pointer-events:none';c.appendChild(b)}b.innerHTML=buildBlurredPhoto(data.content);b.classList.remove('hidden')}
-                if(data.capsule_type==='personal'&&!isOpen){const updateTimer=()=>{const n=new Date();const u=new Date(data.unlock_at);const d=u-n;if(d<=0||data.is_hacked){clearInterval(timerInterval);overlay.classList.remove('hidden');safeModel.addEventListener('load',()=>{overlay.classList.add('hidden')},{once:true});const mp=getModelPaths(data.model_type||'safe');safeModel.setAttribute('src',mp.open);document.getElementById('status-container').classList.add('hidden');document.getElementById('passcode-section').classList.add('hidden');document.getElementById('reveal-section').classList.remove('hidden');tg.HapticFeedback.notificationOccurred('success')}else{const h=Math.floor(d/(36e5));const m=Math.floor((d%36e5)/6e4);const s=Math.floor((d%6e4)/1e3);document.getElementById('timer').innerText=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`}};updateTimer();timerInterval=setInterval(updateTimer,1000)}
-            }catch(e){tg.showAlert("Ошибка загрузки.")}
-        }
-        function renderGroupProgress(data) {
-            const c=data.stars_contributions||{};const g=data.goal_stars||500;let t=0;
-            for(const[k,v]of Object.entries(c))t+=v;
-            const p=Math.min(100,Math.round((t/g)*100));
-            document.getElementById('group-progress-fill').style.width=p+'%';
-            document.getElementById('group-progress-text').textContent=`${t} / ${g} ⭐`;
-            document.getElementById('group-progress-pct').textContent=p+'%';
-            const list=document.getElementById('contributor-list');list.innerHTML='';
-            for(const[uid,amt]of Object.entries(c)){const pill=document.createElement('span');pill.className='contributor-pill';pill.textContent=`🆔${uid.slice(-4)}: ${amt}⭐`;list.appendChild(pill)}
-            if(data.is_hacked){document.getElementById('contribute-btn').disabled=true;document.getElementById('contribute-btn').textContent='✅ Взломан!'}
-        }
-        async function contributeStars() {
-            if(!currentCapsuleId)return;
-            const uid=tg.initDataUnsafe?.user?.id;if(!uid)return tg.showAlert('Нужен Telegram ID');
-            tg.HapticFeedback.impactOccurred('medium');
-            try{const r=await fetch('/api/contribute',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:currentCapsuleId,user_id:uid,amount:50})});const d=await r.json();capsuleData.stars_contributions=d.stars_contributions;capsuleData.is_hacked=d.is_hacked;renderGroupProgress(capsuleData);if(d.is_hacked){fireConfetti();tg.showAlert('🎉 Капсула взломана!');loadCapsule(currentCapsuleId)}}catch(e){tg.showAlert('Ошибка.')}
-        }
-        function startGeoWatch(data) {
-            if(!navigator.geolocation){document.getElementById('geo-status-text').textContent='Геолокация не поддерживается';return}
-            document.getElementById('geo-status-text').textContent='Поиск позиции...';
-            // Init or reset Leaflet map
-            if(geoMap){
-                // Reset map for new capsule: remove old markers, update center
-                if(geoMarker) geoMap.removeLayer(geoMarker);
-                if(userMarker) geoMap.removeLayer(userMarker);
-                userMarker=null;
-                geoMap.setView([data.geo_lat,data.geo_lng],15);
-                // Remove old circles (layers that aren't tile or marker)
-                geoMap.eachLayer(l=>{if(l instanceof L.Circle) geoMap.removeLayer(l)});
-            } else {
-                geoMap=L.map('geo-map',{zoomControl:true,attributionControl:false}).setView([data.geo_lat,data.geo_lng],15);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(geoMap);
-            }
-            // Target marker
-            const targetIcon=L.divIcon({html:'<div style="width:24px;height:24px;border-radius:50%;background:rgba(16,185,129,0.3);border:3px solid #10b981;box-shadow:0 0 16px rgba(16,185,129,0.5);display:flex;align-items:center;justify-content:center;font-size:14px">📍</div>',className:'',iconSize:[24,24],iconAnchor:[12,12]});
-            geoMarker=L.marker([data.geo_lat,data.geo_lng],{icon:targetIcon}).addTo(geoMap);
-            geoMarker.bindPopup('<b>🎯 Цель</b><br>Радиус: '+(data.geo_radius||50)+'м').openPopup();
-            // Radius circle
-            L.circle([data.geo_lat,data.geo_lng],{radius:data.geo_radius||50,color:'#10b981',fillColor:'#10b981',fillOpacity:0.1,weight:1,dashArray:'6,8'}).addTo(geoMap);
-            // Fix map size after becoming visible
-            setTimeout(()=>{if(geoMap) geoMap.invalidateSize()},100);
-            const check=(pos)=>{
-                lastGeoPos=pos;
-                const lat=pos.coords.latitude,lng=pos.coords.longitude;
-                // Update user marker on map
-                if(geoMap){
-                    if(!userMarker){const userIcon=L.divIcon({html:'<div style="width:16px;height:16px;border-radius:50%;background:#22d3ee;border:3px solid #fff;box-shadow:0 0 12px rgba(34,211,238,0.8)"></div>',className:'',iconSize:[16,16],iconAnchor:[8,8]});userMarker=L.marker([lat,lng],{icon:userIcon}).addTo(geoMap)}
-                    else userMarker.setLatLng([lat,lng]);
-                    geoMap.setView([lat,lng],geoMap.getZoom());
-                }
-                // Haversine distance
-                const R=6371000;
-                const dLat=(data.geo_lat-lat)*Math.PI/180,dLng=(data.geo_lng-lng)*Math.PI/180;
-                const a=Math.sin(dLat/2)**2+Math.cos(lat*Math.PI/180)*Math.cos(data.geo_lat*Math.PI/180)*Math.sin(dLng/2)**2;
-                const dist=Math.round(R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)));
-                document.getElementById('geo-distance').textContent=dist;
-                const dot=document.getElementById('geo-status-dot'),st=document.getElementById('geo-status-text'),ub=document.getElementById('geo-unlock-btn');
-                if(dist<=(data.geo_radius||50)){dot.className='geo-status-dot unlocked';st.textContent='Ты на месте!';ub.classList.remove('hidden')}
-                else if(dist<200){dot.className='geo-status-dot near';st.textContent='Совсем рядом!';ub.classList.add('hidden')}
-                else{dot.className='geo-status-dot';st.textContent='До цели '+dist+'м';ub.classList.add('hidden')}
-            };
-            navigator.geolocation.getCurrentPosition(check,()=>{document.getElementById('geo-status-text').textContent='Ошибка позиции'},{enableHighAccuracy:true});
-            geoWatchId=navigator.geolocation.watchPosition(check,null,{enableHighAccuracy:true,maximumAge:5000});
-        }
-        async function unlockGeo() {
-            if(!capsuleData||!lastGeoPos)return tg.showAlert('Сначала дождись определения позиции!');
-            try{const r=await fetch('/api/geo-check',{method:'POST',headers:apiHeaders(),body:JSON.stringify({id:currentCapsuleId,lat:lastGeoPos.coords.latitude,lng:lastGeoPos.coords.longitude})});const d=await r.json();if(d.unlocked||capsuleData.is_hacked){capsuleData.is_hacked=true;document.getElementById('geo-unlock-btn').disabled=true;document.getElementById('geo-unlock-btn').textContent='✅ Открыто!';fireConfetti();loadCapsule(currentCapsuleId)}else{tg.showAlert(`Не на месте! ${Math.round(d.distance)}м`)}}
-            catch(e){tg.showAlert('Ошибка.')}
-        }
-        async function revealSecret() {
-            const model = document.getElementById('safe-model');
-            const section = document.getElementById('reveal-section');
-            const flash = document.getElementById('safe-flash');
-            const popup = document.getElementById('secret-popup');
-            const reactionsBar = document.getElementById('reactions-bar');
-            const data = capsuleData;
-            if (!data) return;
-            // Меняем кнопку на загрузку, скрываем лишнее
-            section.querySelector('.reveal-title').innerHTML = 'Открываем<span class="dots-pulse"><span class="dots"></span></span>';
-            section.querySelector('.reveal-sub').classList.add('hidden');
-            section.querySelector('.reveal-btn').classList.add('hidden');
-            reactionsBar.classList.add('hidden');
-            tg.HapticFeedback.impactOccurred('heavy');
-            // Плавно сбрасываем камеру в исходную позицию
-            model.removeAttribute('auto-rotate');
-            model.cameraOrbit = '0deg 75deg 3m';
-            await sleep(600);
-            // Начинаем зум
-            model.classList.add('zooming');
-            model.cameraOrbit = '0deg 60deg 3m';
-            await sleep(200);
-            model.setAttribute('field-of-view','30deg');
-            model.cameraOrbit = '0deg 80deg 1.5m';
-            await sleep(400);
-            model.setAttribute('field-of-view','12deg');
-            model.cameraOrbit = '10deg 85deg 0.6m';
-            await sleep(500);
-            // Вспышка
-            flash.style.opacity = '1';
-            await sleep(150);
-            flash.style.opacity = '0';
-            await sleep(100);
-            // Сброс камеры
-            model.classList.remove('zooming');
-            model.setAttribute('field-of-view','45deg');
-            model.cameraOrbit = '45deg 75deg 4m';
-            model.setAttribute('auto-rotate', '');
-            // Прячем reveal-секцию
-            section.classList.add('hidden');
-            // Показываем секрет поверх сейфа
-            popup.classList.remove('hidden');
-            document.getElementById('secret-content').innerHTML = buildContent(data);
-            fireConfetti();
-        }
-        function closeSecret() {
-            document.getElementById('secret-popup').classList.add('hidden');
-            document.getElementById('reactions-bar').classList.remove('hidden');
-            document.getElementById('reveal-section').classList.remove('hidden');
-            const section = document.getElementById('reveal-section');
-            section.querySelector('.reveal-title').textContent = 'Время вышло! 🔓';
-            section.querySelector('.reveal-sub').classList.remove('hidden');
-            section.querySelector('.reveal-btn').classList.remove('hidden');
-        }
-        function shareSecret() {
-            const shareUrl = `https://t.me/${BOT_USERNAME}/app?startapp=${currentCapsuleId}`;
-            tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent("Загляни в эту капсулу времени!")}`);
-        }
-        function createOwn() {
-            document.getElementById('secret-popup').classList.add('hidden');
-            document.getElementById('view-view').classList.add('hidden');
-            document.getElementById('create-view').classList.remove('hidden');
-            currentCapsuleId = null;
-            tg.HapticFeedback.impactOccurred('light');
-        }
-        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-        function buildContent(data) {
-            if (data.media_type === 'photo') {
-                return `<img src="${data.content}" class="secret-photo" alt="Секретное фото">`;
-            } else if (data.media_type === 'voice') {
-                return `<audio controls class="secret-audio" src="${data.content}"></audio>`;
-            } else {
-                return `<div class="secret-content">${escapeHtml(data.content)}</div>`;
-            }
-        }
-        function buildBlurredPhoto(src) {
-            return `<div class="photo-blur-wrapper"><img src="${src}" class="secret-photo blurred" alt="Размытое фото"><div class="blur-badge">👁 Размыто до открытия</div></div>`;
-        }
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        function fireConfetti() {
-            confetti({particleCount:150,spread:80,origin:{y:0.5,x:0.5},colors:['#06b6d4','#22d3ee','#f59e0b','#8b5cf6','#22c55e','#ef4444']});
-            setTimeout(()=>confetti({particleCount:80,spread:100,origin:{y:0.4,x:0.3},colors:['#06b6d4','#f59e0b','#22c55e']}),200);
-            setTimeout(()=>confetti({particleCount:80,spread:100,origin:{y:0.4,x:0.7},colors:['#22d3ee','#8b5cf6','#ef4444']}),400);
-        }
-        function updateReactions(reactions) {
-            ['👀','😈','🥺','🔥','💎'].forEach(e => {
-                const el1 = document.getElementById('rc-'+e);
-                const el2 = document.getElementById('prc-'+e);
-                const val = reactions[e] || 0;
-                if (el1) el1.textContent = val;
-                if (el2) el2.textContent = val;
-            });
-        }
-        const apiHeaders = () => {
-            const h = {'Content-Type':'application/json'};
-            if (tg.initData) h['X-Telegram-Init-Data'] = tg.initData;
-            return h;
-        };
-        async function sendReaction(emoji) {
-            if (!currentCapsuleId) return;
-            const userId = tg.initDataUnsafe?.user?.id;
-            if (!userId) return;
-            tg.HapticFeedback.impactOccurred('light');
-            try {
-                const res = await fetch('/api/reaction', {method:'POST',headers:apiHeaders(),body:JSON.stringify({id:currentCapsuleId,emoji:emoji,user_id:userId})});
-                const data = await res.json();
-                updateReactions(data.reactions || {});
-            } catch(e) {}
-        }
-        function digitInput(e, idx) {
-            const val = e.target.value.replace(/\D/g,'');
-            e.target.value = val.slice(-1);
-            if (val && idx < 3) document.getElementById('pd-'+(idx+1))?.focus();
-        }
-        function digitKeydown(e, idx) {
-            if (e.key === 'Backspace' && !e.target.value && idx > 0) {
-                document.getElementById('pd-'+(idx-1))?.focus();
-            }
-        }
-        async function tryPasscode() {
-            const digits = [];
-            for (let i=0;i<4;i++) digits.push(document.getElementById('pd-'+i).value);
-            const code = digits.join('');
-            if (code.length < 4) return tg.showAlert('Введи все 4 цифры!');
-            try {
-                const res = await fetch('/api/passcode', {method:'POST',headers:apiHeaders(),body:JSON.stringify({id:currentCapsuleId,passcode:code})});
-                const data = await res.json();
-                if (data.success) {
-                    tg.HapticFeedback.notificationOccurred('success');
-                    document.getElementById('passcode-section').classList.add('hidden');
-                    loadCapsule(currentCapsuleId);
-                } else {
-                    tg.HapticFeedback.notificationOccurred('error');
-                    document.getElementById('passcode-attempts-text').textContent = `Осталось попыток: ${data.attempts}`;
-                    if (data.attempts <= 0) {
-                        document.getElementById('passcode-submit-btn').disabled = true;
-                        document.getElementById('passcode-attempts-text').textContent = 'Попытки закончились. Только платный взлом!';
-                        document.getElementById('passcode-attempts-text').classList.add('warn');
-                    }
-                    for (let i=0;i<4;i++) document.getElementById('pd-'+i).value = '';
-                    document.getElementById('pd-0').focus();
-                    tg.showAlert(`Неверный код. ${data.attempts > 0 ? 'Осталось '+data.attempts+' попыток.' : 'Попытки закончились!'}`);
-                }
-            } catch(e) {tg.showAlert('Ошибка.')}
-        }
-        async function hackCapsule() {
-            if (capsuleData && capsuleData.allow_hack === false) {
-                return tg.showAlert('Создатель запретил взлом за звёзды.');
-            }
-            tg.HapticFeedback.impactOccurred('medium');
-            try {
-                const res = await fetch(`/api/invoice?id=${currentCapsuleId}`);
-                const data = await res.json();
-                if (data.url) {
-                    tg.openInvoice(data.url,(status)=>{
-                        if (status==='paid'||status==='pending'){tg.showAlert("Успех! Взломан");loadCapsule(currentCapsuleId)}
-                    });
-                }
-            } catch(e) {tg.showAlert("Ошибка инвойса.")}
-        }
-        // Geo search (Nominatim API)
-        async function searchGeoPlace() {
-            const q = document.getElementById('geo-search-input').value.trim();
-            const resultsEl = document.getElementById('geo-search-results');
-            if (geoSearchTimeout) clearTimeout(geoSearchTimeout);
-            if (q.length < 2) { resultsEl.style.display = 'none'; return; }
-            geoSearchTimeout = setTimeout(async () => {
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&accept-language=ru`,{headers:{'User-Agent':'CapsuleBot/1.0'}});
-                    const places = await res.json();
-                    if (!places.length) { resultsEl.style.display = 'none'; return; }
-                    resultsEl.innerHTML = places.map(p =>
-                        `<div class="geo-result-item" onclick="selectGeoPlace(${p.lat},${p.lon},'${p.display_name.replace(/'/g,"\\'")}')">📍 ${p.display_name}</div>`
-                    ).join('');
-                    resultsEl.style.display = 'block';
-                } catch(e) { resultsEl.style.display = 'none'; }
-            }, 400);
-        }
-        function selectGeoPlace(lat, lng, name) {
-            document.getElementById('geo-lat').value = lat.toFixed(6);
-            document.getElementById('geo-lng').value = lng.toFixed(6);
-            document.getElementById('geo-search-input').value = name;
-            document.getElementById('geo-search-results').style.display = 'none';
-            document.getElementById('geo-fetch-btn').textContent = '✅ Выбрано: ' + name.substring(0, 30) + (name.length > 30 ? '...' : '');
-            tg.HapticFeedback.notificationOccurred('success');
-        }
-        // Close geo search on outside click
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('#geo-search-input') && !e.target.closest('#geo-search-results')) {
-                document.getElementById('geo-search-results').style.display = 'none';
-            }
-        });
-    </script>
+
+    <script src="app.js"></script>
 </body>
 </html>

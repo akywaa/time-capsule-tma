@@ -19,7 +19,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// ValidateTWA проверяет подпись initData от Telegram WebApp
+// ValidateTWA
+// TODO: вынести куда то логику валидации
+// https://core.telegram.org/bots/webapps#validating-data-received-via-the-web-app
 func ValidateTWA(initData string, botToken string) (map[string]string, bool) {
 	if initData == "" || botToken == "" {
 		return nil, false
@@ -33,7 +35,6 @@ func ValidateTWA(initData string, botToken string) (map[string]string, bool) {
 		return nil, false
 	}
 	vals.Del("hash")
-	// Сортируем ключи и строим data-check-string
 	keys := make([]string, 0, len(vals))
 	for k := range vals {
 		keys = append(keys, k)
@@ -44,14 +45,15 @@ func ValidateTWA(initData string, botToken string) (map[string]string, bool) {
 		parts = append(parts, k+"="+vals.Get(k))
 	}
 	checkString := strings.Join(parts, "\n")
-	// HMAC-SHA256 с bot_token как ключом
 	secret := hmac.New(sha256.New, []byte("WebAppData"))
 	secret.Write([]byte(botToken))
 	h := hmac.New(sha256.New, secret.Sum(nil))
 	h.Write([]byte(checkString))
+	
 	if hex.EncodeToString(h.Sum(nil)) != hash {
 		return nil, false
 	}
+	
 	result := make(map[string]string)
 	for k, v := range vals {
 		if len(v) > 0 {
@@ -61,10 +63,11 @@ func ValidateTWA(initData string, botToken string) (map[string]string, bool) {
 	return result, true
 }
 
-// parseUserFromTWA извлекает user.id из валидированных данных TWA
 func parseUserFromTWA(data map[string]string) int64 {
 	if userJSON := data["user"]; userJSON != "" {
-		var u struct{ ID int64 `json:"id"` }
+		var u struct {
+			ID int64 `json:"id"`
+		}
 		if json.Unmarshal([]byte(userJSON), &u) == nil {
 			return u.ID
 		}
@@ -72,65 +75,60 @@ func parseUserFromTWA(data map[string]string) int64 {
 	return 0
 }
 
-// RequireTWA — middleware для проверки initData
 func RequireTWA(botToken string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		initData := r.Header.Get("X-Telegram-Init-Data")
 		if initData == "" {
 			initData = r.URL.Query().Get("init_data")
 		}
-		// В dev-режиме без BOT_TOKEN пропускаем
 		if botToken == "" {
 			next(w, r)
 			return
 		}
 		if _, ok := ValidateTWA(initData, botToken); !ok {
-			http.Error(w, `{"error":"Invalid Telegram signature"}`, 403)
+			http.Error(w, `{"error":"Unauthorized"}`, http.StatusForbidden)
 			return
 		}
 		next(w, r)
 	}
 }
 
-// --- HTTP API Handlers (возвращают http.HandlerFunc) ---
-
-// MakeCreateHandler — POST /api/create
 func MakeCreateHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		SenderID     int64   `json:"sender_id"`
-		Content      string  `json:"content"`
-		Hours        int     `json:"hours"`
-		Passcode     string  `json:"passcode"`
-		MediaType    string  `json:"media_type"`
-		HackPrice    int     `json:"hack_price"`
-		AllowHack    bool    `json:"allow_hack"`
-		AllowHackSet bool    `json:"allow_hack_set"`
-		CapsuleType  string  `json:"capsule_type"`
-		GoalStars    int     `json:"goal_stars"`
-		GeoLat       float64 `json:"geo_lat"`
-		GeoLng       float64 `json:"geo_lng"`
-		GeoRadius    int     `json:"geo_radius"`
-		ModelType    string  `json:"model_type"`
-	}
+		var req struct {
+			SenderID     int64   `json:"sender_id"`
+			Content      string  `json:"content"`
+			Hours        int     `json:"hours"`
+			Passcode     string  `json:"passcode"`
+			MediaType    string  `json:"media_type"`
+			HackPrice    int     `json:"hack_price"`
+			AllowHack    bool    `json:"allow_hack"`
+			AllowHackSet bool    `json:"allow_hack_set"`
+			CapsuleType  string  `json:"capsule_type"`
+			GoalStars    int     `json:"goal_stars"`
+			GeoLat       float64 `json:"geo_lat"`
+			GeoLng       float64 `json:"geo_lng"`
+			GeoRadius    int     `json:"geo_radius"`
+			ModelType    string  `json:"model_type"`
+		}
+
+		// log.Println("try to create capsule...") // дебаг
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error":"Invalid payload"}`, 400)
+			http.Error(w, `{"error":"Invalid request payload"}`, http.StatusBadRequest)
 			return
 		}
 
 		if req.MediaType == "" {
 			req.MediaType = "text"
 		}
+		if req.CapsuleType == "" {
+			req.CapsuleType = "personal"
+		}
+		if req.ModelType == "" {
+			req.ModelType = "safe"
+		}
 
-	if req.CapsuleType == "" {
-		req.CapsuleType = "personal"
-	}
-
-	if req.ModelType == "" {
-		req.ModelType = "safe"
-	}
-
-	c := &Capsule{
+		c := &Capsule{
 			ID:                 uuid.New().String(),
 			SenderID:           req.SenderID,
 			Content:            req.Content,
@@ -147,47 +145,46 @@ func MakeCreateHandler(store Store) http.HandlerFunc {
 			CapsuleType:        req.CapsuleType,
 			GoalStars:          req.GoalStars,
 			StarsContributions: make(map[int64]int),
-		GeoLat:             req.GeoLat,
-		GeoLng:             req.GeoLng,
-		GeoRadius:          req.GeoRadius,
-		ModelType:          req.ModelType,
-	}
+			GeoLat:             req.GeoLat,
+			GeoLng:             req.GeoLng,
+			GeoRadius:          req.GeoRadius,
+			ModelType:          req.ModelType,
+		}
+
 		if c.HackPrice <= 0 {
-			c.HackPrice = 50 // default
+			c.HackPrice = 50
 		}
 		if !req.AllowHackSet {
-			c.AllowHack = true // default
+			c.AllowHack = true
 		}
 
 		if err := store.Insert(c); err != nil {
-			log.Println("DB Insert Error:", err)
-			http.Error(w, `{"error":"DB Error"}`, 500)
+			log.Printf("db insert error: %v", err)
+			http.Error(w, `{"error":"Internal Server Error"}`, http.StatusInternalServerError)
 			return
 		}
 
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"id":          c.ID,
+			"id":           c.ID,
 			"has_passcode": c.Passcode != "",
 		})
 	}
 }
 
-// MakeGetHandler — GET /api/get?id=...&viewer_id=...
 func MakeGetHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 		if id == "" {
-			http.Error(w, `{"error":"Missing ID"}`, 400)
+			http.Error(w, `{"error":"Missing capsule ID"}`, http.StatusBadRequest)
 			return
 		}
 
 		c, err := store.GetByID(id)
 		if err != nil {
-			http.Error(w, `{"error":"Not Found"}`, 404)
+			http.Error(w, `{"error":"Capsule not found"}`, http.StatusNotFound)
 			return
 		}
 
-		// Если передан viewer_id — запоминаем получателя (первый открывший)
 		if viewerStr := r.URL.Query().Get("viewer_id"); viewerStr != "" {
 			var viewerID int64
 			if _, scanErr := fmt.Sscanf(viewerStr, "%d", &viewerID); scanErr == nil && viewerID != 0 {
@@ -195,7 +192,6 @@ func MakeGetHandler(store Store) http.HandlerFunc {
 			}
 		}
 
-		// Собираем ответ
 		resp := map[string]interface{}{
 			"id":                  c.ID,
 			"sender_id":           c.SenderID,
@@ -210,43 +206,41 @@ func MakeGetHandler(store Store) http.HandlerFunc {
 			"capsule_type":        c.CapsuleType,
 			"goal_stars":          c.GoalStars,
 			"stars_contributions": c.StarsContributions,
-		"geo_lat":             c.GeoLat,
-		"geo_lng":             c.GeoLng,
-		"geo_radius":          c.GeoRadius,
-		"model_type":          c.ModelType,
-	}
+			"geo_lat":             c.GeoLat,
+			"geo_lng":             c.GeoLng,
+			"geo_radius":          c.GeoRadius,
+			"model_type":          c.ModelType,
+		}
 
 		isUnlocked := time.Now().UTC().After(c.UnlockAt) || c.IsHacked
 		if isUnlocked {
 			resp["content"] = c.Content
 		} else if c.MediaType == "photo" {
-			// Размытое превью для фото
 			resp["content"] = c.Content
 			resp["preview"] = true
 		} else {
-			resp["content"] = "Секрет надежно скрыт :)"
+			resp["content"] = "Secret is safely hidden :)"
 		}
 
 		json.NewEncoder(w).Encode(resp)
 	}
 }
 
-// MakeInvoiceHandler — GET /api/invoice?id=... (использует hack_price из капсулы)
 func MakeInvoiceHandler(store Store, bot *gotgbot.Bot) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.URL.Query().Get("id")
 		if id == "" {
-			http.Error(w, `{"error":"Missing ID"}`, 400)
+			http.Error(w, `{"error":"Missing capsule ID"}`, http.StatusBadRequest)
 			return
 		}
 
 		c, err := store.GetByID(id)
 		if err != nil {
-			http.Error(w, `{"error":"Not Found"}`, 404)
+			http.Error(w, `{"error":"Capsule not found"}`, http.StatusNotFound)
 			return
 		}
 		if !c.AllowHack {
-			http.Error(w, `{"error":"Hack not allowed"}`, 403)
+			http.Error(w, `{"error":"Hack not allowed"}`, http.StatusForbidden)
 			return
 		}
 
@@ -256,16 +250,16 @@ func MakeInvoiceHandler(store Store, bot *gotgbot.Bot) http.HandlerFunc {
 		}
 
 		link, err := bot.CreateInvoiceLink(
-			"Взлом капсулы",
-			"Моментальный доступ к секрету!",
-			id,    // Payload (ID капсулы)
-			"XTR", // Валюта Telegram Stars
-			[]gotgbot.LabeledPrice{{Label: "Взлом", Amount: int64(price)}},
+			"Capsule Hack",
+			"Instant access to the secret!",
+			id,
+			"XTR",
+			[]gotgbot.LabeledPrice{{Label: "Hack", Amount: int64(price)}},
 			nil,
 		)
 		if err != nil {
-			log.Println("Invoice error:", err)
-			http.Error(w, `{"error":"Invoice generation failed"}`, 500)
+			log.Printf("invoice creation failed: %v", err)
+			http.Error(w, `{"error":"Failed to generate invoice"}`, http.StatusInternalServerError)
 			return
 		}
 
@@ -273,7 +267,6 @@ func MakeInvoiceHandler(store Store, bot *gotgbot.Bot) http.HandlerFunc {
 	}
 }
 
-// MakeReactionHandler — POST /api/reaction
 func MakeReactionHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
@@ -281,18 +274,19 @@ func MakeReactionHandler(store Store) http.HandlerFunc {
 			Emoji  string `json:"emoji"`
 			UserID int64  `json:"user_id"`
 		}
+		
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error":"Invalid payload"}`, 400)
+			http.Error(w, `{"error":"Invalid payload"}`, http.StatusBadRequest)
 			return
 		}
 		if req.ID == "" || req.Emoji == "" || req.UserID == 0 {
-			http.Error(w, `{"error":"Missing id, emoji, or user_id"}`, 400)
+			http.Error(w, `{"error":"Missing required fields"}`, http.StatusBadRequest)
 			return
 		}
 
 		c, err := store.ToggleReaction(req.ID, req.UserID, req.Emoji)
 		if err != nil {
-			http.Error(w, `{"error":"Not Found"}`, 404)
+			http.Error(w, `{"error":"Not Found"}`, http.StatusNotFound)
 			return
 		}
 
@@ -302,21 +296,22 @@ func MakeReactionHandler(store Store) http.HandlerFunc {
 	}
 }
 
-// MakePasscodeHandler — POST /api/passcode (атомарный, без race condition)
 func MakePasscodeHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			ID       string `json:"id"`
 			Passcode string `json:"passcode"`
 		}
+		
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error":"Invalid payload"}`, 400)
+			http.Error(w, `{"error":"Invalid payload"}`, http.StatusBadRequest)
 			return
 		}
 
 		success, remaining, err := store.AttemptPasscode(req.ID, req.Passcode)
 		if err != nil {
-			http.Error(w, `{"error":"Server error"}`, 500)
+			log.Printf("passcode error: %v", err)
+			http.Error(w, `{"error":"Internal Server Error"}`, http.StatusInternalServerError)
 			return
 		}
 
@@ -327,7 +322,6 @@ func MakePasscodeHandler(store Store) http.HandlerFunc {
 	}
 }
 
-// MakeContributeHandler — POST /api/contribute (для Group Drop)
 func MakeContributeHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
@@ -335,19 +329,24 @@ func MakeContributeHandler(store Store) http.HandlerFunc {
 			UserID int64  `json:"user_id"`
 			Amount int    `json:"amount"`
 		}
+		
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error":"Invalid payload"}`, 400)
+			http.Error(w, `{"error":"Invalid payload"}`, http.StatusBadRequest)
 			return
 		}
+		
 		c, err := store.Contribute(req.ID, req.UserID, req.Amount)
 		if err != nil {
-			http.Error(w, `{"error":"Contribute failed"}`, 500)
+			log.Printf("contribution failed: %v", err)
+			http.Error(w, `{"error":"Failed to process contribution"}`, http.StatusInternalServerError)
 			return
 		}
+		
 		total := 0
 		for _, v := range c.StarsContributions {
 			total += v
 		}
+		
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"is_hacked":           c.IsHacked,
 			"stars_contributions": c.StarsContributions,
@@ -357,7 +356,6 @@ func MakeContributeHandler(store Store) http.HandlerFunc {
 	}
 }
 
-// MakeGeoCheckHandler — POST /api/geo-check
 func MakeGeoCheckHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
@@ -365,15 +363,18 @@ func MakeGeoCheckHandler(store Store) http.HandlerFunc {
 			Lat float64 `json:"lat"`
 			Lng float64 `json:"lng"`
 		}
+		
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, `{"error":"Invalid payload"}`, 400)
+			http.Error(w, `{"error":"Invalid payload"}`, http.StatusBadRequest)
 			return
 		}
+		
 		unlocked, dist, err := store.GeoCheck(req.ID, req.Lat, req.Lng)
 		if err != nil {
-			http.Error(w, `{"error":"Not Found"}`, 404)
+			http.Error(w, `{"error":"Not Found"}`, http.StatusNotFound)
 			return
 		}
+		
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"unlocked": unlocked,
 			"distance": dist,
@@ -381,54 +382,57 @@ func MakeGeoCheckHandler(store Store) http.HandlerFunc {
 	}
 }
 
-// MakeMyCapsulesHandler — GET /api/my (возвращает капсулы текущего пользователя)
 func MakeMyCapsulesHandler(store Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		initData := r.Header.Get("X-Telegram-Init-Data")
 		data, ok := ValidateTWA(initData, os.Getenv("BOT_TOKEN"))
+		
 		if !ok {
-			http.Error(w, `{"error":"unauthorized"}`, 403)
+			http.Error(w, `{"error":"Unauthorized"}`, http.StatusForbidden)
 			return
 		}
+		
 		userID := parseUserFromTWA(data)
 		if userID == 0 {
-			http.Error(w, `{"error":"no user id"}`, 400)
+			http.Error(w, `{"error":"Invalid user context"}`, http.StatusBadRequest)
 			return
 		}
+		
 		capsules, err := store.FindBySenderID(userID)
 		if err != nil {
-			http.Error(w, `[]`, 200)
+			log.Printf("error fetching capsules for %d: %v", userID, err)
+			json.NewEncoder(w).Encode([]interface{}{})
 			return
 		}
+		
 		json.NewEncoder(w).Encode(capsules)
 	}
 }
 
-// MakeReminderHandler — POST /api/cron/reminders (для Vercel Cron / ручного вызова)
 func MakeReminderHandler(store Store, bot *gotgbot.Bot) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		capsules, err := store.FindPendingReminders()
 		if err != nil {
-			log.Println("Reminder find error:", err)
-			http.Error(w, `{"error":"DB Error"}`, 500)
+			log.Printf("cron reminder db error: %v", err)
+			http.Error(w, `{"error":"Database error"}`, http.StatusInternalServerError)
 			return
 		}
 
 		sent := 0
 		for _, c := range capsules {
-			// Отправляем получателю (viewer) если известен, иначе создателю
 			targetID := c.ViewerID
 			if targetID == 0 {
 				targetID = c.SenderID
 			}
-			msg := "🔔 Сейф откроется через час! Ты готов узнать секрет?"
-			_, err := bot.SendMessage(targetID, msg, nil)
-			if err != nil {
-				log.Println("Reminder send error:", err)
+			
+			msg := "🔔 Safe opens in 1 hour! Ready to see the secret?"
+			if _, err := bot.SendMessage(targetID, msg, nil); err != nil {
+				log.Printf("failed to send reminder to %d: %v", targetID, err)
 				continue
 			}
+			
 			if err := store.MarkReminderSent(c.ID); err != nil {
-				log.Println("Reminder mark error:", err)
+				log.Printf("failed to mark reminder sent for %s: %v", c.ID, err)
 				continue
 			}
 			sent++
@@ -440,9 +444,6 @@ func MakeReminderHandler(store Store, bot *gotgbot.Bot) http.HandlerFunc {
 	}
 }
 
-// --- Telegram Payment Handlers ---
-
-// MakePreCheckoutHandler — одобряет попытку оплаты
 func MakePreCheckoutHandler() func(*gotgbot.Bot, *ext.Context) error {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		_, err := b.AnswerPreCheckoutQuery(ctx.PreCheckoutQuery.Id, true, nil)
@@ -450,26 +451,24 @@ func MakePreCheckoutHandler() func(*gotgbot.Bot, *ext.Context) error {
 	}
 }
 
-// MakeSuccessfulPaymentHandler — обрабатывает успешный платёж и шлёт пуш отправителю
 func MakeSuccessfulPaymentHandler(store Store, bot *gotgbot.Bot) func(*gotgbot.Bot, *ext.Context) error {
 	return func(b *gotgbot.Bot, ctx *ext.Context) error {
 		capsuleID := ctx.Message.SuccessfulPayment.InvoicePayload
-
 		hackerUsername := ctx.EffectiveUser.Username
+		
 		if hackerUsername == "" {
 			hackerUsername = ctx.EffectiveUser.FirstName
 		}
 
 		c, err := store.SetHacked(capsuleID)
 		if err != nil {
-			log.Println("SetHacked error:", err)
+			log.Printf("payment success, but failed to set hack status for %s: %v", capsuleID, err)
 			return nil
 		}
 
-		msg := fmt.Sprintf("Ахах, твой друг @%s не выдержал и взломал твою капсулу за деньги! 🌟", hackerUsername)
-		_, err = b.SendMessage(c.SenderID, msg, nil)
-		if err != nil {
-			log.Println("SendMessage error:", err)
+		msg := fmt.Sprintf("Haha, your friend @%s couldn't resist and hacked your capsule for money! 🌟", hackerUsername)
+		if _, err = b.SendMessage(c.SenderID, msg, nil); err != nil {
+			log.Printf("failed to send hack notification to sender: %v", err)
 		}
 
 		return nil
