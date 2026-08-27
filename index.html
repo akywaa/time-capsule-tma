@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Time Capsule</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-dots"></div>
+    <div class="app-glow"></div>
+    <div class="safe-flash" id="safe-flash"></div>
+
+    <div class="secret-popup hidden" id="secret-popup">
+        <button class="secret-close" onclick="closeSecret()">✕</button>
+        <div class="secret-popup-card">
+            <h4>🔓 Секрет открыт!</h4>
+            <div id="secret-content"></div>
+        </div>
+        <div class="popup-footer">
+            <div class="popup-reactions">
+                <button class="reaction-btn" onclick="sendReaction('👀')">👀 <span class="reaction-count" id="prc-👀">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('😈')">😈 <span class="reaction-count" id="prc-😈">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('🥺')">🥺 <span class="reaction-count" id="prc-🥺">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('🔥')">🔥 <span class="reaction-count" id="prc-🔥">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('💎')">💎 <span class="reaction-count" id="prc-💎">0</span></button>
+            </div>
+            <div class="popup-actions">
+                <button class="popup-action-btn accent" onclick="shareSecret()">📤 Поделиться</button>
+                <button class="popup-action-btn" onclick="createOwn()">✨ Создать свою</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-wrap">
+        <div id="home-view" class="hidden">
+            <div class="brand">Капсула времени</div>
+            <p class="subtitle">Сохрани момент в будущем или спрячь его на карте</p>
+            <div class="home-card">
+                <i>⏳</i>
+                <h3 style="margin:0 0 8px;font-weight:800;">Твои секреты</h3>
+                <p style="font-size:13px;color:var(--text-dim);margin:0;" id="my-capsules-text">
+                    У тебя пока нет созданных капсул. Сделай первый шаг!
+                </p>
+            </div>
+            <button class="btn btn-primary" onclick="startCreationFlow()" style="margin-top:10px;padding:18px;font-size:18px;">
+                ✨ Создать секрет
+            </button>
+        </div>
+
+        <div id="create-view" class="hidden">
+            <div class="step-dots" id="create-dots">
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+            </div>
+
+            <div class="create-step active" id="step-1">
+                <h2 style="margin:0 0 16px;">Внешний вид</h2>
+                <p class="subtitle">Выбери, как будет выглядеть капсула</p>
+                <div class="model-preview-wrap" style="height:220px;margin-bottom:16px;border-radius:16px;overflow:hidden;background:rgba(255,255,255,0.03);position:relative;animation:float 4s ease-in-out infinite">
+                    <model-viewer id="model-preview" src="https://github.com/akywaa/time-capsule-tma/releases/download/v1.0.0/safe.glb" auto-rotate camera-controls disable-zoom shadow-intensity="1" interaction-prompt="none" environment-image="neutral" exposure="0.9" style="width:100%;height:100%;"></model-viewer>
+                </div>
+                <div class="model-selector" id="model-selector">
+                    <button class="model-option active" data-model="safe" onclick="switchModel('safe')"><span class="model-icon">🔒</span> Сейф</button>
+                    <button class="model-option" data-model="love" onclick="switchModel('love')"><span class="model-icon">❤️</span> Бокс любви</button>
+                    <button class="model-option" data-model="scifi" onclick="switchModel('scifi')"><span class="model-icon">🚀</span> Sci-Fi</button>
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="cancelCreation()">Отмена</button>
+                    <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(2)">Далее →</button>
+                </div>
+            </div>
+
+            <div class="create-step" id="step-2">
+                <h2 style="margin:0 0 16px;">Что прячем?</h2>
+                <div class="media-type-tabs">
+                    <button class="media-type-tab active" onclick="switchMediaType('text')" id="tab-text">📝 Текст</button>
+                    <button class="media-type-tab" onclick="switchMediaType('photo')" id="tab-photo">📸 Фото</button>
+                    <button class="media-type-tab" onclick="switchMediaType('voice')" id="tab-voice">🎤 Голос</button>
+                </div>
+                <div class="input-group" id="group-text">
+                    <textarea id="text-input" rows="4" placeholder="Напиши свой секрет здесь..."></textarea>
+                </div>
+                <div class="input-group hidden" id="group-photo">
+                    <div class="file-upload">
+                        <input type="file" id="photo-input" accept="image/*" onchange="previewPhoto(event)">
+                        <label for="photo-input" class="file-upload-label" id="photo-label">📎 Выбери фото</label>
+                    </div>
+                    <img id="photo-preview-img" class="photo-preview hidden" alt="Preview">
+                </div>
+                <div class="input-group hidden" id="group-voice">
+                    <div class="voice-section">
+                        <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">🎤</button>
+                        <span class="voice-timer" id="voice-timer">00:00</span>
+                        <audio id="voice-preview-audio" class="hidden" controls></audio>
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(1)">← Назад</button>
+                    <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(3)">Далее →</button>
+                </div>
+            </div>
+
+            <div class="create-step" id="step-3">
+                <h2 style="margin:0 0 16px;">Условия открытия</h2>
+                <div class="capsule-type-tabs">
+                    <button class="capsule-type-tab active" data-type="personal" onclick="switchCapsuleType('personal')"><span class="tab-icon">👤</span> Личная</button>
+                    <button class="capsule-type-tab" data-type="group" onclick="switchCapsuleType('group')"><span class="tab-icon">👥</span> Групповая</button>
+                    <button class="capsule-type-tab" data-type="geo" onclick="switchCapsuleType('geo')"><span class="tab-icon">📍</span> Гео</button>
+                </div>
+                <div class="input-group" id="group-timer">
+                    <div class="custom-select" id="timer-select">
+                        <button class="custom-select-trigger" id="timer-trigger" onclick="toggleTimerDropdown(event)"><span>🔒</span> <span id="timer-label">Запереть на 24 часа</span></button>
+                        <div class="custom-select-dropdown hidden" id="timer-dropdown">
+                            <div class="custom-option" data-value="1" data-label="🔒 Запереть на 1 час" onclick="selectTimerOption(this)">🕐 1 час</div>
+                            <div class="custom-option selected" data-value="24" data-label="🔒 Запереть на 24 часа" onclick="selectTimerOption(this)">🕐 24 часа</div>
+                            <div class="custom-option" data-value="168" data-label="🔒 Запереть на 1 неделю" onclick="selectTimerOption(this)">📅 1 неделя</div>
+                            <div class="custom-option" data-value="720" data-label="🔒 Запереть на 1 месяц" onclick="selectTimerOption(this)">📅 1 месяц</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-group hidden" id="group-stars-section">
+                    <div class="star-input-wrap">
+                        <span style="font-size:14px;color:var(--text-dim)">Цель сбора:</span>
+                        <input type="number" id="goal-stars" value="500" min="10" max="99999" step="10">
+                        <span class="star-label">⭐</span>
+                    </div>
+                </div>
+                <div class="input-group hidden" id="geo-section-create">
+                    <div class="geo-search-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="geo-search-input" placeholder="Поиск места (кафе, адрес...)" oninput="searchGeoPlace()" autocomplete="off">
+                        <div class="geo-search-results" id="geo-search-results"></div>
+                    </div>
+                    <button class="geo-fetch-btn" id="geo-fetch-btn" onclick="fetchLocation()">📍 Определить местоположение</button>
+                    <div class="geo-coords">
+                        <input type="text" id="geo-lat" placeholder="Широта" readonly>
+                        <input type="text" id="geo-lng" placeholder="Долгота" readonly>
+                    </div>
+                    <div class="settings-card" style="margin-bottom:0">
+                        <div class="card-row">
+                            <label>Радиус (метров)</label>
+                            <input type="number" id="geo-radius" value="50" min="5" max="5000" step="5">
+                        </div>
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(2)">← Назад</button>
+                    <button class="btn btn-primary" style="background:var(--accent);color:#fff;" onclick="nextStep(4)">Далее →</button>
+                </div>
+            </div>
+
+            <div class="create-step" id="step-4">
+                <h2 style="margin:0 0 16px;">Безопасность</h2>
+                <div class="settings-card" id="hack-settings">
+                    <div class="card-row">
+                        <label>Код-пароль</label>
+                        <input type="text" id="passcode-input" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*" style="width:90px;text-align:center">
+                    </div>
+                    <div class="card-row">
+                        <span style="font-size:14px;color:var(--text)">Разрешить взлом</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="allow-hack" checked onchange="toggleHackPrice()">
+                            <div class="toggle-slider"></div>
+                        </label>
+                    </div>
+                    <div class="card-row" id="row-price">
+                        <label>Цена взлома (⭐)</label>
+                        <input type="number" id="hack-price" value="50" min="1" max="999999">
+                    </div>
+                </div>
+                <div class="step-nav">
+                    <button class="btn btn-secondary" onclick="prevStep(3)">← Назад</button>
+                    <button class="btn btn-primary" onclick="createCapsule()" id="create-btn">Спрятать секрет 🔒</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-view" class="hidden">
+            <div class="model-container" id="model-container">
+                <model-viewer id="safe-model" auto-rotate camera-controls disable-zoom shadow-intensity="1" interaction-prompt="none" environment-image="neutral" exposure="0.9"></model-viewer>
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Загрузка сейфа</div>
+                </div>
+            </div>
+
+            <div class="reveal-section hidden" id="reveal-section">
+                <div class="reveal-overlay">
+                    <div class="reveal-title">Время вышло! 🔓</div>
+                    <div class="reveal-sub">Сейф готов открыть свою тайну</div>
+                    <button class="reveal-btn" onclick="revealSecret()">Раскрыть секрет</button>
+                </div>
+            </div>
+
+            <div id="status-container">
+                <div class="timer-wrapper" id="timer-card">
+                    <div class="timer-label" id="timer-label-text">Сейф откроется через</div>
+                    <div class="timer-status">
+                        <div class="status-dot"></div>
+                        <span style="color:var(--text-dim);font-size:11px;font-weight:500" id="timer-status-text">ЗАКРЫТ</span>
+                        <span class="capsule-type-badge hidden" id="type-badge"></span>
+                    </div>
+                    <div class="timer" id="timer">--:--:--</div>
+                </div>
+                <button id="hack-btn" class="btn btn-stars hidden" onclick="hackCapsule()">
+                    <span class="star-icon">⭐</span> Взломать досрочно (50 Stars)
+                </button>
+            </div>
+
+            <div class="group-drop-card hidden" id="group-drop-card">
+                <div class="card-title">👥 Групповой сбор <span style="font-weight:400;font-size:11px">— скидываемся на взлом</span></div>
+                <div class="progress-bar-wrap"><div class="progress-bar-fill" id="group-progress-fill" style="width:0%"></div></div>
+                <div class="progress-text"><span id="group-progress-text">0 / 500 ⭐</span><strong id="group-progress-pct">0%</strong></div>
+                <div class="contributor-list" id="contributor-list"></div>
+                <button class="btn btn-stars" onclick="contributeStars()" id="contribute-btn"><span class="star-icon">⭐</span> Внести 50 Stars</button>
+            </div>
+
+            <div class="geo-view-card hidden" id="geo-view-card">
+                <div class="card-title">📍 Гео-капсула <span style="font-weight:400;font-size:11px">— доберись до места</span></div>
+                <div class="geo-map-wrap" id="geo-map-wrap">
+                    <div id="geo-map" style="height:220px"></div>
+                </div>
+                <div class="distance-display" id="geo-distance">---</div>
+                <div class="distance-label">метров до цели</div>
+                <div class="distance-sub">
+                    <span class="geo-status-dot" id="geo-status-dot"></span>
+                    <span id="geo-status-text">Ожидание геопозиции...</span>
+                </div>
+                <button class="btn btn-geo hidden" onclick="unlockGeo()" id="geo-unlock-btn">🔓 Открыть сейф</button>
+            </div>
+
+            <div id="passcode-section" class="passcode-section hidden">
+                <div class="passcode-title">🔢 Введи 4-значный пароль</div>
+                <div class="passcode-inputs">
+                    <input type="text" class="passcode-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="digitInput(event,0)" onkeydown="digitKeydown(event,0)" id="pd-0">
+                    <input type="text" class="passcode-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="digitInput(event,1)" onkeydown="digitKeydown(event,1)" id="pd-1">
+                    <input type="text" class="passcode-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="digitInput(event,2)" onkeydown="digitKeydown(event,2)" id="pd-2">
+                    <input type="text" class="passcode-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" oninput="digitInput(event,3)" onkeydown="digitKeydown(event,3)" id="pd-3">
+                </div>
+                <div class="passcode-attempts" id="passcode-attempts-text"></div>
+                <button class="btn btn-passcode" onclick="tryPasscode()" id="passcode-submit-btn">Проверить</button>
+            </div>
+
+            <div class="reactions-bar" id="reactions-bar">
+                <button class="reaction-btn" onclick="sendReaction('👀')">👀 <span class="reaction-count" id="rc-👀">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('😈')">😈 <span class="reaction-count" id="rc-😈">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('🥺')">🥺 <span class="reaction-count" id="rc-🥺">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('🔥')">🔥 <span class="reaction-count" id="rc-🔥">0</span></button>
+                <button class="reaction-btn" onclick="sendReaction('💎')">💎 <span class="reaction-count" id="rc-💎">0</span></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
