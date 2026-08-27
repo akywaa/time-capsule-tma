@@ -11,9 +11,9 @@
 <!-- Add your screenshots below -->
 
 <p align="center">
-  <img src="screenshots/screenshot1.png" alt="Capsule creation screen" width="250"/>
-  <img src="screenshots/screenshot2.png" alt="3D safe view" width="250"/>
-  <img src="screenshots/screenshot3.png" alt="Opened capsule" width="250"/>
+  <img src="https://github.com/user-attachments/assets/453a2261-8aab-4a30-ba7c-1ba9e91292a6" alt="Capsule creation screen" width="250"/>
+  <img src="https://github.com/user-attachments/assets/3c175bfa-49a5-4041-89a9-cc6da495c6bb" alt="3D safe view" width="250"/>
+  <img src="https://github.com/user-attachments/assets/4c8e507c-e408-4dcc-ac95-8a6637a4645e" alt="Opened capsule" width="250"/>
 </p>
 
 ## How It Works
